@@ -1,0 +1,146 @@
+<?php
+
+namespace App\Services;
+
+use App\Mail\GuestMessage;
+use App\Models\Booking;
+use App\Models\BookingMessage;
+use App\Models\MessageTemplate;
+use App\Models\Tenant;
+use Illuminate\Support\Facades\Mail;
+
+class GuestMessenger
+{
+    public const EVENTS = [
+        'booking_received' => 'Booking received (payment needed)',
+        'booking_confirmed' => 'Booking confirmed',
+        'payment_received' => 'Payment received',
+        'booking_cancelled' => 'Booking cancelled',
+        'pre_arrival' => 'Pre-arrival reminder',
+        'thank_you' => 'Thank you after check-out',
+    ];
+
+    /** Events that go out at most once per booking. Payment receipts can repeat. */
+    private const ONCE = ['booking_received', 'booking_confirmed', 'booking_cancelled', 'pre_arrival', 'thank_you'];
+
+    public function template(Tenant $tenant, string $event): array
+    {
+        $default = config("platform.message_defaults.{$event}");
+        $saved = MessageTemplate::where('tenant_id', $tenant->id)->where('event', $event)->first();
+
+        return $saved ? [...$default, ...$saved->only('enabled', 'subject', 'body', 'send_days_before'), 'customized' => true]
+            : [...$default, 'customized' => false];
+    }
+
+    public function send(Booking $booking, string $event): ?BookingMessage
+    {
+        // Walk-ins booked with only a phone number or Facebook name have nowhere to send email.
+        if (blank($booking->guest_email)) {
+            return null;
+        }
+        $booking->loadMissing('property', 'room', 'tenant', 'payments', 'price');
+        $template = $this->template($booking->tenant, $event);
+        if (! $template['enabled'] || (in_array($event, self::ONCE, true) && $booking->messages()->where('event', $event)->where('status', 'SENT')->exists())) {
+            return null;
+        }
+        $values = $this->values($booking);
+        $subject = $this->render($template['subject'], $values);
+        $body = $this->render($template['body'], $values);
+        $error = null;
+        try {
+            Mail::to($booking->guest_email, $booking->guest_name)->send(new GuestMessage($booking->tenant, $subject, $body));
+        } catch (\Throwable $e) {
+            report($e);
+            $error = mb_substr($e->getMessage(), 0, 250);
+        }
+
+        return BookingMessage::create(['booking_id' => $booking->id, 'event' => $event, 'recipient' => $booking->guest_email,
+            'subject' => $subject, 'status' => $error ? 'FAILED' : 'SENT', 'error' => $error]);
+    }
+
+    public function render(string $text, array $values): string
+    {
+        return strtr($text, collect($values)->mapWithKeys(fn ($value, $key) => ['{'.$key.'}' => (string) $value])->all());
+    }
+
+    public function values(Booking $booking): array
+    {
+        $tenant = $booking->tenant;
+        $settings = $tenant->settings;
+        $money = fn (float $amount) => self::money($amount, $settings['currency']);
+        $date = fn ($value) => $value?->format('D, M j, Y') ?? '';
+        $pending = $booking->payments->firstWhere('status', 'PENDING');
+        $method = $pending ? ($settings['payment_methods'][$pending->method] ?? null) : null;
+        $balance = $booking->balanceDue();
+
+        return [
+            'guest_name' => $booking->guest_name, 'booking_reference' => $booking->reference,
+            'business_name' => $tenant->business_name, 'business_phone' => $tenant->business_phone ?? '', 'business_email' => $tenant->business_email ?? '',
+            'property_name' => $booking->property->name,
+            'property_address' => collect([$booking->property->address, $booking->property->city, $booking->property->province])->filter()->implode(', '),
+            'room_name' => $booking->room->name, 'check_in' => $date($booking->check_in), 'check_out' => $date($booking->check_out),
+            'check_in_time' => self::time($settings['check_in_time']), 'check_out_time' => self::time($settings['check_out_time']),
+            'nights' => (int) $booking->check_in->diffInDays($booking->check_out), 'guests' => $booking->guests,
+            'total' => $money((float) $booking->total), 'amount_paid' => $money($booking->paidAmount()),
+            'amount_due' => $money($pending ? (float) $pending->amount : $booking->amountDueNow()),
+            'balance_due' => $money($balance),
+            'balance_due_note' => $balance > 0 && $booking->balance_due_on ? '(due by '.$date($booking->balance_due_on).')' : '',
+            'payment_deadline' => $booking->expires_at?->timezone(config('platform.timezone'))->format('M j, Y g:i A') ?? '',
+            'payment_instructions' => $method ? self::instructions(TenantSettings::PAYMENT_METHODS[$pending->method], $method) : '',
+            'add_ons' => collect($booking->price?->add_ons ?? [])->map(fn ($line) => $line['quantity'] > 1 ? "{$line['name']} ×{$line['quantity']}" : $line['name'])->implode(', '),
+            'house_rules' => $settings['house_rules'], 'cancellation_policy' => $settings['cancellation_policy'],
+        ];
+    }
+
+    /** Sample values for previews and test sends. */
+    public function sampleValues(Tenant $tenant): array
+    {
+        $settings = $tenant->settings;
+        $money = fn (float $amount) => self::money($amount, $settings['currency']);
+        $gcash = $settings['payment_methods']['gcash'];
+        $day = fn (int $days) => now()->addDays($days)->format('D, M j, Y');
+
+        return ['guest_name' => 'Maria Santos', 'booking_reference' => $settings['reference_prefix'].'-'.date('Y').'-7K2Q9XMA',
+            'business_name' => $tenant->business_name, 'business_phone' => $tenant->business_phone ?? '+63 917 000 0000', 'business_email' => $tenant->business_email ?? '',
+            'property_name' => 'Azure Coast Villas', 'property_address' => 'Panglao, Bohol', 'room_name' => 'Signature Suite',
+            'check_in' => $day(10), 'check_out' => $day(12),
+            'check_in_time' => self::time($settings['check_in_time']), 'check_out_time' => self::time($settings['check_out_time']),
+            'nights' => 2, 'guests' => 2, 'total' => $money(15050), 'amount_paid' => $money(7525), 'amount_due' => $money(7525),
+            'balance_due' => $money(7525), 'balance_due_note' => '(due by '.$day(3).')',
+            'payment_deadline' => now()->addDay()->format('M j, Y g:i A'),
+            'payment_instructions' => self::instructions('GCash', ['account_name' => $gcash['account_name'] ?: 'Juan Dela Cruz',
+                'account_number' => $gcash['account_number'] ?: '0917 123 4567', 'instructions' => $gcash['instructions']]),
+            'add_ons' => 'Breakfast ×2, Airport transfer',
+            'house_rules' => $settings['house_rules'] ?: 'Quiet hours from 10 PM. No smoking indoors.',
+            'cancellation_policy' => $settings['cancellation_policy'] ?: 'Free cancellation up to 7 days before check-in.',
+        ];
+    }
+
+    public static function placeholders(): array
+    {
+        return ['guest_name', 'booking_reference', 'business_name', 'business_phone', 'business_email', 'property_name', 'property_address',
+            'room_name', 'check_in', 'check_out', 'check_in_time', 'check_out_time', 'nights', 'guests', 'total', 'amount_paid',
+            'amount_due', 'balance_due', 'balance_due_note', 'payment_deadline', 'payment_instructions', 'add_ons', 'house_rules', 'cancellation_policy'];
+    }
+
+    public static function money(float $amount, string $currency): string
+    {
+        $symbol = ['PHP' => '₱', 'USD' => '$', 'EUR' => '€', 'GBP' => '£', 'JPY' => '¥', 'KRW' => '₩'][$currency] ?? $currency.' ';
+
+        return $symbol.number_format($amount, in_array($currency, ['JPY', 'KRW'], true) ? 0 : 2);
+    }
+
+    private static function time(string $hhmm): string
+    {
+        return date('g:i A', strtotime($hhmm));
+    }
+
+    private static function instructions(string $label, array $method): string
+    {
+        return collect(["How to pay ({$label}):",
+            $method['account_name'] ? "Account name: {$method['account_name']}" : null,
+            $method['account_number'] ? "Account number: {$method['account_number']}" : null,
+            $method['instructions'] ?: null,
+        ])->filter()->implode("\n");
+    }
+}
