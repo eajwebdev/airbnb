@@ -11,10 +11,10 @@ const WEBSITES = [
   { id: 'booking', name: 'Booking website + customer accounts', price: 499, description: 'Property pages, stay search, checkout, guest sign-in and booking history.' },
 ] as const;
 const ADDONS = [
-  { id: 'pos', name: 'Point of sale', price: 349, description: 'Front desk sales, items, charges and transaction records.' },
-  { id: 'messages', name: 'Guest messaging', price: 299, description: 'Message templates and booking communication tools.' },
-  { id: 'payments', name: 'Online payment integration', price: 399, description: 'Connect a supported provider to online booking checkout.', requiresBooking: true },
-  { id: 'face', name: 'Face recognition attendance', price: 249, description: 'Camera-based staff clock-in and clock-out with attendance records, subject to privacy review.' },
+  { id: 'pos', name: 'Point of sale', price: 549, description: 'Front desk sales, items, charges and transaction records.' },
+  { id: 'messages', name: 'Guest messaging', price: 499, description: 'Message templates and booking communication tools.' },
+  { id: 'payments', name: 'Online payment integration', price: 599, description: 'PayMongo payment links for reservations and checkout on the booking website.' },
+  { id: 'face', name: 'Face recognition attendance', price: 399, description: 'Camera-based staff clock-in and clock-out with attendance records, subject to privacy review.' },
 ] as const;
 const INCLUDED = ['Property and room records', 'Availability calendar', 'Manual reservations', 'Guest and payment records', 'Advanced reports & insights', 'Staff access', 'Cloud hosting, SSL and backups'];
 const CORE_MODULES = [
@@ -34,7 +34,7 @@ function initialSelection() {
   const website = WEBSITES.some(option => option.id === candidate) ? candidate as WebsiteId : 'none';
   const addons = (params.get('addons') || '').split(',').filter((id): id is AddonId => addonIds.has(id));
   if (params.get('face') === '1' && !addons.includes('face')) addons.push('face');
-  return { properties: clampCount(params.get('properties')), website, addons: addons.filter(id => id !== 'payments' || website === 'booking') };
+  return { properties: clampCount(params.get('properties')), website, addons };
 }
 
 export default function Quotation() {
@@ -44,7 +44,7 @@ export default function Quotation() {
   const [selected, setSelected] = useState<AddonId[]>(initial.addons);
   const [copied, setCopied] = useState(false);
   const chosenWebsite = WEBSITES.find(option => option.id === website)!;
-  const chosenAddons = ADDONS.filter(addon => selected.includes(addon.id) && (!('requiresBooking' in addon) || website === 'booking'));
+  const chosenAddons = ADDONS.filter(addon => selected.includes(addon.id));
   const perProperty = BASE_PRICE + chosenWebsite.price + chosenAddons.reduce((sum, addon) => sum + addon.price, 0);
   const total = perProperty * properties;
   const issued = new Intl.DateTimeFormat('en-PH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date());
@@ -62,7 +62,6 @@ export default function Quotation() {
 
   function selectWebsite(value: WebsiteId) {
     setWebsite(value);
-    if (value !== 'booking') setSelected(current => current.filter(id => id !== 'payments'));
   }
 
   function toggleAddon(id: AddonId) {
@@ -97,7 +96,7 @@ export default function Quotation() {
 
         <section className="eq-section" aria-labelledby="website-title"><SectionHeading number="02" label="Public website" title="Choose your site" id="website-title"/><p className="eq-section-copy">Select one. The business page presents your brand; the booking site includes customer accounts and direct reservations.</p><fieldset className="eq-choices"><legend className="sr-only">Website option</legend>{WEBSITES.map(option => <label key={option.id} className={`eq-choice ${website === option.id ? 'is-selected' : ''}`}><input type="radio" name="website" value={option.id} checked={website === option.id} onChange={() => selectWebsite(option.id)}/><span className="eq-choice-indicator" aria-hidden="true"/><span className="eq-choice-copy"><strong>{option.name}</strong><small>{option.description}</small></span><b>{option.price ? `+ ${peso(option.price)}` : 'Included'}<small>{option.price ? '/ mo' : ''}</small></b></label>)}</fieldset></section>
 
-        <section className="eq-section" aria-labelledby="modules-title"><SectionHeading number="03" label="Optional modules" title="Add only what you need" id="modules-title"/><p className="eq-section-copy">Paid modules are priced per property each month. Cleaning and promotions are already included in Booking Core.</p><div className="eq-modules">{ADDONS.map(addon => { const disabled = 'requiresBooking' in addon && website !== 'booking'; return <button key={addon.id} type="button" role="switch" aria-checked={selected.includes(addon.id)} disabled={disabled} onClick={() => toggleAddon(addon.id)} className="eq-module"><span className="eq-toggle" aria-hidden="true"/><span className="eq-module-copy"><strong>{addon.name}</strong><small>{addon.description}</small></span><b>{addon.price ? `+ ${peso(addon.price)}` : 'Free'}<small>{addon.price ? '/ mo' : ''}</small></b></button>; })}</div><p className="eq-fine">Online payments require the booking website. Provider transaction and message delivery fees are separate. Face recognition attendance requires supported cameras, staff consent and an agreed privacy process.</p></section>
+        <section className="eq-section" aria-labelledby="modules-title"><SectionHeading number="03" label="Optional modules" title="Add only what you need" id="modules-title"/><p className="eq-section-copy">Paid modules are priced per property each month. Cleaning and promotions are already included in Booking Core.</p><div className="eq-modules">{ADDONS.map(addon => <button key={addon.id} type="button" role="switch" aria-checked={selected.includes(addon.id)} onClick={() => toggleAddon(addon.id)} className="eq-module"><span className="eq-toggle" aria-hidden="true"/><span className="eq-module-copy"><strong>{addon.name}</strong><small>{addon.description}</small></span><b>+ {peso(addon.price)}<small>/ mo</small></b></button>)}</div><p className="eq-fine">PayMongo payment links can be used for manual reservations. Online checkout uses the booking website. PayMongo transaction and message delivery fees are separate. Face recognition attendance requires supported cameras, staff consent and an agreed privacy process.</p></section>
 
         <section className="eq-section eq-terms" aria-labelledby="terms-title"><SectionHeading number="04" label="Commercial notes" title="Terms at a glance" id="terms-title"/><div className="eq-terms-grid"><p><strong>Monthly billing.</strong> The base subscription and selected paid modules are billed in advance per property.</p><p><strong>Included services.</strong> Hosting, SSL, routine updates and backups are part of Booking Core.</p><p><strong>External charges.</strong> Payment processing, message delivery and domain registration are separate.</p><p><strong>Final agreement.</strong> EAJ confirms scope, launch timing and final pricing before activation.</p></div></section>
       </div>
