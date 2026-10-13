@@ -35,6 +35,7 @@ body { margin:0; color:var(--foreground); font-family:Inter,ui-sans-serif,system
 .guest-nav-cta { display:inline-flex; align-items:center; gap:.4rem; border-radius:999px; background:var(--guest-primary); padding:.75rem 1.2rem; color:#fff !important; }
 .guest-nav-cta:hover { background:var(--guest-accent); }
 .guest-footer { background:var(--guest-primary); color:#fff; }
+@media(max-width:767px) { .staff-workspace { padding-bottom:calc(80px + env(safe-area-inset-bottom)); } }
 .guest-button { display:inline-flex; min-height:48px; align-items:center; justify-content:center; gap:.5rem; border-radius:12px; background:var(--guest-accent); padding:.8rem 1.4rem; color:white; font-weight:750; cursor:pointer; }
 .guest-button:hover { filter:brightness(.92); }
 .date-trigger { display:flex; min-height:48px; width:100%; align-items:center; gap:.75rem; border:1px solid var(--border); border-radius:12px; background:white; padding:.6rem .9rem; text-align:left; cursor:pointer; }

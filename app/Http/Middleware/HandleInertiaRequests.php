@@ -18,7 +18,7 @@ class HandleInertiaRequests extends Middleware
             'currency' => $request->user()?->tenant?->setting('currency') ?? config('platform.tenant_defaults.currency'),
             'flash' => ['success' => $request->session()->get('success')],
             // Badge on "My tasks": open cleaning assignments up to today.
-            'myTaskCount' => fn () => in_array($request->user()?->role, ['ADMIN', 'STAFF'], true)
+            'myTaskCount' => fn () => $request->user()?->role === 'STAFF'
                 ? CleaningTask::where('assigned_to', $request->user()->id)->where('status', '!=', 'DONE')
                     ->whereDate('date', '<=', today()->toDateString())->whereDate('date', '>=', today()->subDays(14)->toDateString())->count()
                 : 0,

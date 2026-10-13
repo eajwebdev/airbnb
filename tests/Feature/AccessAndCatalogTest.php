@@ -111,7 +111,7 @@ class AccessAndCatalogTest extends TestCase
     public function test_demo_login_supports_all_roles_and_rejects_arbitrary_identity(): void
     {
         config(['platform.demo_mode' => true]);
-        foreach (['superadmin' => '/superadmin', 'admin' => '/admin', 'staff' => '/admin', 'guest' => '/account/bookings'] as $role => $path) {
+        foreach (['superadmin' => '/superadmin', 'admin' => '/admin', 'staff' => '/admin/my-tasks', 'guest' => '/account/bookings'] as $role => $path) {
             $this->post('/demo/login', ['role' => $role])->assertRedirect($path);
             $this->assertEquals(strtoupper($role), auth()->user()->role);
             auth()->logout();

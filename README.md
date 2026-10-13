@@ -23,7 +23,7 @@ php artisan serve
 
 On Windows PowerShell with script execution disabled, use `npm.cmd` and `npx.cmd`. For a quick local trial without MySQL, set `DB_CONNECTION=sqlite` and create `database/database.sqlite` before migrating. The repository's `.env.example` targets MySQL; the local development `.env` used during implementation targets SQLite because this workstation's MySQL account requires credentials that were not supplied.
 
-The Laravel scheduler should run every minute in deployment (`php artisan schedule:run` via cron or Task Scheduler). It expires booking holds and subscription access. Queue workers are needed as notification jobs are added.
+The Laravel scheduler must run every minute in deployment (`php artisan schedule:run` via cron or Task Scheduler). It expires booking holds and subscriptions and sends pre-arrival reminders. Run a queue worker when `QUEUE_CONNECTION=database` so queued jobs are processed.
 
 ## Demo
 
@@ -69,6 +69,10 @@ npm.cmd run build
 
 Tests cover repeatable seeding, the public catalog, authentication, role access, tenant isolation, booking overlap and turnover, blocked dates, pricing, mock and manual payments, booking transitions, plan price snapshots, client locking, and expiry commands.
 
-## Remaining work before production
+## Production deployment gates
 
-The master prompt calls for more than this initial critical path. Still needed: password reset and email verification, property image uploads and white-label public sites, promo and seasonal pricing, reviews, calendar, reports and CSV export, notification templates and subscription reminders, audit coverage for every sensitive action, custom subscription pricing, real payment provider integration, responsive visual QA in a browser, comprehensive MySQL integration testing, and deployment hardening. The in-app browser connection was unavailable during this build, so pages were verified by HTTP responses and frontend build rather than visual screenshots.
+The admin dashboard is for managers. Staff enter at `/admin/my-tasks` and have a smaller, phone-focused workspace for assigned cleaning, bookings, calendar, and POS. Management reports, cleaning assignment, and exports require an administrator account.
+
+Before taking real reservations, configure a production `.env` with `APP_ENV=production`, `APP_DEBUG=false`, `DEMO=false`, HTTPS `APP_URL`, a persistent MySQL database, `MAIL_MAILER` with a working sender, and monitored backups. Build assets, run migrations, start the scheduler and queue worker, and verify outgoing mail and restore from backup on the actual host. Do not load the demo seeder or use its credentials.
+
+The checkout currently supports mock payments and staff-verified manual payments. `PAYMENT_PROVIDER=mock` is for testing and does not collect money. A live PayMongo checkout integration and webhook verification are still required for automatic online payment. Replace remote placeholder property imagery with licensed photos. Run the full test suite against the chosen deployment database and test the complete booking, payment, email, and staff turnover flows on the production-like host before launch.

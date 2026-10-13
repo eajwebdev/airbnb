@@ -169,7 +169,7 @@ class OperationsAndPosTest extends TestCase
     {
         $this->departingToday();
         $staff = $this->user('staff@example.com');
-        $this->actingAs($staff)->get('/admin/cleaning')
+        $this->actingAs($this->user('admin@example.com'))->get('/admin/cleaning')
             ->assertInertia(fn (Assert $page) => $page->component('Admin/Cleaning')->has('tasks', 1)->where('tasks.0.checklist_total', 9)->has('cleaners', 2));
         $task = CleaningTask::firstOrFail();
         $checklist = config('platform.tenant_defaults.cleaning_checklist');
@@ -181,13 +181,13 @@ class OperationsAndPosTest extends TestCase
         $this->assertNotNull($task->started_at);
 
         // Without a photo, ticking every step keeps the room in progress and an explicit "ready" is refused.
-        $this->put('/admin/cleaning/'.$task->id, ['checklist' => $checklist])->assertRedirect();
+        $this->actingAs($staff)->put('/admin/cleaning/'.$task->id, ['checklist' => $checklist])->assertRedirect();
         $this->assertSame('IN_PROGRESS', $task->fresh()->status);
         $this->put('/admin/cleaning/'.$task->id, ['status' => 'DONE'])->assertSessionHasErrors('photo');
         $this->post('/admin/cleaning/'.$task->id.'/photos', ['photos' => [UploadedFile::fake()->image('room.jpg', 800, 600)]])->assertRedirect()->assertSessionHasNoErrors();
         $this->put('/admin/cleaning/'.$task->id, ['checklist' => $checklist])->assertRedirect();
         $this->assertSame('DONE', $task->fresh()->status);
-        $this->put('/admin/cleaning/'.$task->id, ['assigned_to' => $this->user('admin2@example.com')->id])->assertStatus(422);
+        $this->actingAs($this->user('admin@example.com'))->put('/admin/cleaning/'.$task->id, ['assigned_to' => $this->user('admin2@example.com')->id])->assertStatus(422);
         $this->actingAs($this->user('admin2@example.com'))->put('/admin/cleaning/'.$task->id, ['status' => 'NOT_STARTED'])->assertNotFound();
     }
 
@@ -230,6 +230,26 @@ class OperationsAndPosTest extends TestCase
         $this->actingAs($staff)->get('/admin/my-tasks')->assertInertia(fn (Assert $page) => $page->has('tasks', 1)->where('tasks.0.status', 'DONE'));
     }
 
+    public function test_staff_workspace_keeps_management_data_and_other_assignments_private(): void
+    {
+        $booking = $this->departingToday();
+        $admin = $this->user('admin@example.com');
+        $staff = $this->user('staff@example.com');
+        $this->actingAs($admin)->get('/admin/cleaning')->assertOk();
+        $task = CleaningTask::where('booking_id', $booking->id)->firstOrFail();
+
+        $this->actingAs($staff)->get('/admin')->assertRedirect('/admin/my-tasks');
+        $this->get('/admin/cleaning')->assertForbidden();
+        $this->get('/admin/insights')->assertForbidden();
+        $this->get('/admin/reports/export')->assertForbidden();
+        $this->put('/admin/cleaning/'.$task->id, ['status' => 'IN_PROGRESS'])->assertForbidden();
+        $this->post('/admin/cleaning/'.$task->id.'/photos', ['photos' => [UploadedFile::fake()->image('room.jpg')]])->assertForbidden();
+
+        $this->actingAs($admin)->put('/admin/cleaning/'.$task->id, ['assigned_to' => $staff->id])->assertRedirect();
+        $this->actingAs($staff)->put('/admin/cleaning/'.$task->id, ['assigned_to' => $admin->id])->assertForbidden();
+        $this->put('/admin/cleaning/'.$task->id, ['status' => 'IN_PROGRESS'])->assertRedirect();
+    }
+
     public function test_future_turnovers_cannot_be_worked_on_early(): void
     {
         $booking = $this->inHouse();
@@ -259,6 +279,7 @@ class OperationsAndPosTest extends TestCase
         $this->put('/admin/cleaning/'.$task->id, ['status' => 'NOT_STARTED'])->assertRedirect();
 
         $this->put('/admin/settings/cleaning', ['cleaning_checklist' => ['Make beds'], 'cleaning_photo_required' => false])->assertRedirect();
+        $this->put('/admin/cleaning/'.$task->id, ['assigned_to' => $this->user('staff@example.com')->id])->assertRedirect();
         $this->actingAs($this->user('staff@example.com'))->put('/admin/cleaning/'.$task->id, ['status' => 'DONE'])->assertSessionHasNoErrors();
         $this->assertSame('DONE', $task->fresh()->status);
     }

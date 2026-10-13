@@ -57,8 +57,10 @@ class AdminCleaningController extends Controller
 
     public function update(Request $request, CleaningTask $task)
     {
-        $tenant = $request->user()->tenant;
+        $user = $request->user();
+        $tenant = $user->tenant;
         abort_unless($task->tenant_id === $tenant->id, 404);
+        abort_unless($user->role === 'ADMIN' || $task->assigned_to === $user->id, 403);
         $data = $request->validate([
             'status' => ['sometimes', 'in:'.implode(',', CleaningTask::STATUSES)],
             'assigned_to' => ['sometimes', 'nullable', 'integer'],
@@ -66,6 +68,10 @@ class AdminCleaningController extends Controller
             'checklist.*' => ['string', 'max:80'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:500'],
         ]);
+        if ($user->role === 'STAFF') {
+            abort_if(array_key_exists('assigned_to', $data), 403);
+            abort_if($task->status === 'DONE', 403);
+        }
         if (array_key_exists('assigned_to', $data) && $data['assigned_to'] !== null) {
             abort_unless(User::where('tenant_id', $tenant->id)->whereIn('role', ['ADMIN', 'STAFF'])->whereKey($data['assigned_to'])->exists(), 422);
         }
@@ -104,7 +110,9 @@ class AdminCleaningController extends Controller
 
     public function storePhoto(Request $request, CleaningTask $task)
     {
-        abort_unless($task->tenant_id === $request->user()->tenant_id, 404);
+        $user = $request->user();
+        abort_unless($task->tenant_id === $user->tenant_id, 404);
+        abort_unless($user->role === 'ADMIN' || ($task->assigned_to === $user->id && $task->status !== 'DONE'), 403);
         $request->validate([
             'photos' => ['required', 'array', 'min:1', 'max:6'],
             'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
@@ -131,6 +139,7 @@ class AdminCleaningController extends Controller
     public function showPhoto(Request $request, CleaningTaskPhoto $photo)
     {
         abort_unless($photo->task?->tenant_id === $request->user()->tenant_id, 404);
+        abort_unless($request->user()->role === 'ADMIN' || $photo->task->assigned_to === $request->user()->id, 403);
         abort_unless(Storage::disk('local')->exists($photo->path), 404);
 
         return Storage::disk('local')->response($photo->path, null, ['Cache-Control' => 'private, max-age=86400']);
@@ -141,7 +150,7 @@ class AdminCleaningController extends Controller
         $user = $request->user();
         $task = $photo->task;
         abort_unless($task?->tenant_id === $user->tenant_id, 404);
-        abort_unless($user->role === 'ADMIN' || ($photo->uploaded_by === $user->id && $task->status !== 'DONE'), 403);
+        abort_unless($user->role === 'ADMIN' || ($task->assigned_to === $user->id && $photo->uploaded_by === $user->id && $task->status !== 'DONE'), 403);
         $photo->delete();
         $this->audit($request, $task, 'cleaning.photo_removed');
 

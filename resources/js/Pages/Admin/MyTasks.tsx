@@ -16,9 +16,13 @@ export default function MyTasks({ today, tasks, checklist, photoRequired, maxPho
   const open = overdue.length + todays.length;
   const sections: [string, Task[]][] = [['Overdue', overdue], ['Today', todays], ['Coming up', upcoming], ['Finished', finished]];
 
-  const summary = [open ? `${open} to do` : tasks.length ? 'Nothing due today' : '', upcoming.length ? `${upcoming.filter(t => t.status !== 'DONE').length} coming up` : '', finished.length ? `${finished.length} finished today` : ''].filter(Boolean).join(' · ');
-  return <DashboardShell title="My tasks" subtitle={summary || 'Nothing assigned to you yet'}>
-    <Head title="My tasks | EAJ"/>
+  const summary = [open ? `${open} to do` : tasks.length ? 'Nothing due today' : '', upcoming.length ? `${upcoming.length} coming up` : '', finished.length ? `${finished.length} finished today` : ''].filter(Boolean).join(' · ');
+  return <DashboardShell title="Your shift" subtitle={fmtDay(today, { weekday: 'long', month: 'long', day: 'numeric' })}>
+    <Head title="Your shift | EAJ"/>
+    <div className="mx-auto mb-5 grid max-w-2xl grid-cols-3 gap-2 sm:gap-3" aria-label="Task summary">
+      {[['Due', open], ['Coming up', upcoming.length], ['Finished', finished.length]].map(([label, count]) => <div key={label} className="card px-3 py-3 text-center sm:px-4"><strong className="num block text-2xl leading-none">{count}</strong><span className="mt-1 block text-[11px] font-bold text-[var(--muted)]">{label}</span></div>)}
+    </div>
+    <p className="mx-auto mb-4 max-w-2xl text-sm font-semibold text-[var(--muted)]">{summary || 'Nothing assigned to you yet'}. Tap a room to see its checklist, photos and notes.</p>
     {tasks.length === 0 ? <div className="card mx-auto max-w-xl"><Empty icon={<ClipboardCheck size={18}/>} title="No tasks assigned to you" body="When a room is assigned to you on the Cleaning board, it shows up here with its checklist."/></div>
       : <div className="mx-auto grid max-w-2xl gap-6">{sections.filter(([, list]) => list.length).map(([title, list]) => <section key={title}>
         <h2 className={`label mb-2 ${title === 'Overdue' ? '!text-[var(--danger)]' : ''}`}>{title} · {list.length}</h2>
@@ -72,8 +76,8 @@ function TaskCard({ task: t, today, items, photoRequired, maxPhotos }: { task: T
       <div><p className="label mb-2">Photos {photoRequired && !done && <span className="normal-case tracking-normal text-[var(--danger)]">· required before marking ready</span>}</p>
         <TaskPhotos taskId={t.id} photos={t.photos} done={done} max={maxPhotos} big/></div>
       <div><p className="label mb-2">Notes for the front desk</p>
-        <textarea value={notes} maxLength={500} onChange={e => setNotes(e.target.value)} placeholder="Damage, missing items, maintenance needed…" className="input min-h-[80px]"/>
-        {notes !== (t.notes ?? '') && <button type="button" disabled={busy} onClick={() => save({ notes: notes || null })} className="btn btn-light btn-sm mt-2">Save note</button>}</div>
+        <textarea value={notes} maxLength={500} disabled={done} onChange={e => setNotes(e.target.value)} placeholder="Damage, missing items, maintenance needed…" className="input min-h-[80px] disabled:opacity-60"/>
+        {!done && notes !== (t.notes ?? '') && <button type="button" disabled={busy} onClick={() => save({ notes: notes || null })} className="btn btn-light btn-sm mt-2">Save note</button>}</div>
       {error && <p role="alert" className="flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700"><TriangleAlert size={15}/>{error}</p>}
       {!done && <div>
         <button type="button" disabled={busy || needPhoto} onClick={() => { if (!allTicked && !confirm('Some checklist steps are not ticked. Mark the room ready anyway?')) return; save({ status: 'DONE' }); }} className="btn btn-pink w-full !min-h-[50px] !text-[15px]"><Check size={17}/>Mark room ready</button>

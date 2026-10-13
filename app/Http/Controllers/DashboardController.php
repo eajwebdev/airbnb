@@ -19,6 +19,9 @@ class DashboardController extends Controller
 {
     public function admin(Request $request, OperationsService $operations, CleaningService $cleaning)
     {
+        if ($request->user()->role === 'STAFF') {
+            return redirect()->route('admin.tasks.mine');
+        }
         $data = $request->validate(['date' => ['nullable', 'date_format:Y-m-d'], 'months' => ['nullable', 'in:3,6,12']]);
         $tenant = $request->user()->tenant;
         $settings = $tenant->settings;
