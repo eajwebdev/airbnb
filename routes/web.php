@@ -29,6 +29,13 @@ Route::get('/stays', [PublicController::class, 'stays'])->name('stays.index');
 Route::get('/stays/{property:slug}', [PublicController::class, 'show'])->name('stays.show');
 Route::get('/{page}', [PublicController::class, 'legal'])->whereIn('page', ['privacy', 'terms'])->name('legal');
 Route::get('/availability', [PublicController::class, 'availability'])->middleware('throttle:60,1')->name('availability');
+Route::get('/quotation', fn (Request $request) => redirect('/quotation/index.html'.($request->getQueryString() ? '?'.$request->getQueryString() : '')))->name('quotation');
+Route::get('/quotation/index.html', fn () => response()->file(base_path('quotation/index.html')))->name('quotation.page');
+Route::get('/quotation/{asset}', function (string $asset) {
+    abort_unless(in_array($asset, ['app.js', 'style.css', 'modules.css', 'eaj-primary.png'], true), 404);
+
+    return response()->file(base_path("quotation/{$asset}"));
+})->name('quotation.asset');
 Route::get('/quote', [PublicController::class, 'quote'])->middleware('throttle:60,1')->name('quote');
 Route::post('/bookings', [PublicController::class, 'book'])->middleware('throttle:10,1')->name('bookings.store');
 Route::get('/checkout/{reference}', [PublicController::class, 'checkout'])->name('checkout.show');

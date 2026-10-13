@@ -105,6 +105,10 @@ class PublicController extends Controller
     /** Live price breakdown for the stay page, using the same rules as booking. */
     public function quote(Request $request, AvailabilityService $availability, PricingService $pricing)
     {
+        if ($request->query() === [] && $request->acceptsHtml()) {
+            return redirect()->route('quotation');
+        }
+
         $data = $request->validate(['room_id' => 'required|exists:rooms,id', 'check_in' => 'required|date_format:Y-m-d|after_or_equal:today',
             'check_out' => 'required|date_format:Y-m-d|after:check_in', 'guests' => 'required|integer|min:1|max:100',
             'promo_code' => 'nullable|string|max:20', 'add_ons' => 'nullable|array|max:30', 'add_ons.*' => 'integer|min:0|max:50']);
