@@ -1,72 +1,90 @@
-/* EAJ quotation values are centralized here so pricing can be updated after confirmation. */
-const PRICE = {
-  monthly: 3499,
-  annual: 29988,
-  oneTimeEstimate: 85000,
-  faceMonthlyEstimate: 999,
-  faceAnnualEstimate: 9990,
-  faceOneTimeEstimate: 12000,
+/* Edit the monthly prices below when EAJ confirms its final rate card. */
+const PRICING = {
+  base: 1799,
+  websites: { none: 0, business: 499, booking: 999 },
+  addons: [
+    { id: 'pos', name: 'Point of sale', price: 499, description: 'Front desk sales, items, charges and transaction records.' },
+    { id: 'cleaning', name: 'Cleaning & staff tasks', price: 299, description: 'Room turnover tasks, assignments, status updates and task photos.' },
+    { id: 'promotions', name: 'Promos & seasonal rates', price: 249, description: 'Date-based rates, discount codes and add-on offers.' },
+    { id: 'messages', name: 'Guest messaging', price: 299, description: 'Message templates and booking communication tools. Delivery-provider fees are separate.' },
+    { id: 'reports', name: 'Advanced reports & insights', price: 349, description: 'Expanded booking, revenue and operations views.' },
+    { id: 'payments', name: 'Online payment integration', price: 399, description: 'Connect a supported payment provider to booking checkout. Requires the Booking Website add-on; provider fees are separate.', requires: 'booking' },
+    { id: 'face', name: 'Face recognition login', price: 999, description: 'Camera-based staff sign-in with enrollment, recovery and a password fallback. Subject to biometric privacy review.' },
+  ],
 };
-const state = { mode: 'subscription', billing: 'monthly', properties: 1, face: false };
-const peso = value => '₱' + Math.round(value).toLocaleString('en-PH');
+
 const $ = selector => document.querySelector(selector);
+const peso = value => '₱' + Math.round(value).toLocaleString('en-PH');
 const params = new URLSearchParams(location.search);
-const validInteger = value => Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 20;
+const addonIds = new Set(PRICING.addons.map(addon => addon.id));
+const requestedAddons = (params.get('addons') || '').split(',').filter(id => addonIds.has(id));
+const state = {
+  properties: Math.max(1, Math.min(20, parseInt(params.get('properties'), 10) || 1)),
+  website: Object.hasOwn(PRICING.websites, params.get('website')) ? params.get('website') : 'none',
+  addons: new Set(requestedAddons),
+};
+if (params.get('face') === '1') state.addons.add('face'); // Legacy shared links.
+if (state.website !== 'booking') state.addons.delete('payments');
 
-if (params.get('mode') === 'one-time') state.mode = 'one-time';
-if (params.get('billing') === 'annual') state.billing = 'annual';
-if (validInteger(params.get('properties'))) state.properties = Number(params.get('properties'));
-state.face = params.get('face') === '1';
-
-function quote() {
-  const base = state.mode === 'one-time' ? PRICE.oneTimeEstimate : PRICE[state.billing];
-  const addon = !state.face ? 0 : state.mode === 'one-time' ? PRICE.faceOneTimeEstimate : state.billing === 'annual' ? PRICE.faceAnnualEstimate : PRICE.faceMonthlyEstimate;
-  return { base, addon, unit: base + addon, total: (base + addon) * state.properties };
+function drawAddons() {
+  $('#addons').innerHTML = PRICING.addons.map(addon => `<label class="addon" data-addon="${addon.id}"><input type="checkbox" value="${addon.id}"><span class="addon-toggle" aria-hidden="true"></span><span class="addon-copy"><strong>${addon.name}</strong><small>${addon.description}</small></span><span class="addon-price">+ ${peso(addon.price)} / mo</span></label>`).join('');
+  $('#addons').addEventListener('change', event => {
+    const id = event.target.value;
+    if (!addonIds.has(id)) return;
+    if (event.target.checked) state.addons.add(id); else state.addons.delete(id);
+    render();
+  });
 }
 
-function terms() {
-  if (state.mode === 'one-time') return [
-    ['Estimated price', 'The displayed implementation and face login fees are planning estimates. EAJ will confirm the final scope, hardware, integration effort and price in a signed proposal.'],
-    ['Payment schedule', 'The estimated total is split 50% upon project start and 50% on acceptance or go-live, subject to the final agreement.'],
-    ['Hosting & maintenance', 'Cloud hosting, domain, backups, security updates and ongoing support are quoted separately after handover.'],
-    ['Ownership & delivery', 'Deployment and usage rights, source access, timeline and acceptance criteria are set out in the final service agreement.'],
-  ];
-  return [
-    ['Billing', state.billing === 'annual' ? 'The plan is billed annually in advance per property. Add-on fees follow the same billing period.' : 'The plan is billed monthly in advance per property. Add-on fees follow the same billing period.'],
-    ['Included operations', 'Hosting, SSL, routine platform updates and backups are included in the hosted subscription.'],
-    ['Third-party fees', 'Payment processing, SMS, domain registration and other external provider charges are separate.'],
-    ['Scope & activation', 'EAJ confirms onboarding, support level, launch schedule and service terms before activation.'],
-  ];
+function calculate() {
+  const chosen = PRICING.addons.filter(addon => state.addons.has(addon.id));
+  const perProperty = PRICING.base + PRICING.websites[state.website] + chosen.reduce((sum, addon) => sum + addon.price, 0);
+  return { chosen, perProperty, total: perProperty * state.properties };
 }
 
 function render() {
-  const q = quote();
-  document.querySelectorAll('.mode-card').forEach(card => {
-    card.classList.toggle('is-selected', card.dataset.mode === state.mode);
-    card.querySelector('input').checked = card.dataset.mode === state.mode;
+  if (state.website !== 'booking') state.addons.delete('payments');
+  document.querySelectorAll('.website-card').forEach(card => {
+    const selected = card.dataset.website === state.website;
+    card.classList.toggle('is-selected', selected);
+    card.querySelector('input').checked = selected;
   });
-  document.querySelector(`input[name="billing"][value="${state.billing}"]`).checked = true;
-  $('#subscription-controls').hidden = state.mode === 'one-time';
-  $('#face-addon').checked = state.face;
-  $('.addon').classList.toggle('is-active', state.face);
-  $('#addon-price').textContent = state.mode === 'one-time' ? `+ Est. ${peso(PRICE.faceOneTimeEstimate)} / property` : state.billing === 'annual' ? `+ Est. ${peso(PRICE.faceAnnualEstimate)} / year` : `+ Est. ${peso(PRICE.faceMonthlyEstimate)} / month`;
+  document.querySelectorAll('.addon').forEach(row => {
+    const addon = PRICING.addons.find(item => item.id === row.dataset.addon);
+    const blocked = !!addon.requires && state.website !== addon.requires;
+    const input = row.querySelector('input');
+    input.checked = state.addons.has(addon.id);
+    input.disabled = blocked;
+    row.classList.toggle('is-active', input.checked);
+    row.classList.toggle('is-disabled', blocked);
+  });
+
   $('#properties').value = state.properties;
   $('#minus').disabled = state.properties === 1;
   $('#plus').disabled = state.properties === 20;
-  const baseName = state.mode === 'one-time' ? 'One-time platform estimate' : state.billing === 'annual' ? 'Annual platform subscription' : 'Monthly platform subscription';
-  const suffix = state.mode === 'one-time' ? 'one time' : state.billing === 'annual' ? 'per year' : 'per month';
-  $('#line-items').innerHTML = `<div class="line-item"><span>${baseName} × ${state.properties}</span><span>${peso(q.base * state.properties)}</span></div>` + (state.face ? `<div class="line-item"><span>Face recognition login × ${state.properties}</span><span>${peso(q.addon * state.properties)}</span></div>` : '<div class="line-item"><span>Face recognition login</span><span>Not selected</span></div>');
-  $('#total-label').textContent = state.mode === 'one-time' ? 'Estimated one-time total' : state.billing === 'annual' ? 'Total due annually' : 'Total due monthly';
+  const q = calculate();
+  const websiteNames = { business: 'Business landing page', booking: 'Booking website + customer accounts' };
+  const rows = [{ name: 'Booking Core', price: PRICING.base }];
+  if (state.website !== 'none') rows.push({ name: websiteNames[state.website], price: PRICING.websites[state.website] });
+  q.chosen.forEach(addon => rows.push({ name: addon.name, price: addon.price }));
+  $('#line-items').innerHTML = rows.map(row => `<div class="line-item"><span>${row.name} × ${state.properties}</span><span>${peso(row.price * state.properties)}</span></div>`).join('');
   $('#total').textContent = peso(q.total);
-  $('#total-note').textContent = state.mode === 'one-time' ? `Estimated fee for ${state.properties} ${state.properties === 1 ? 'property' : 'properties'}; hosting and maintenance separate.` : `Billed ${state.billing} in advance for ${state.properties} ${state.properties === 1 ? 'property' : 'properties'}.`;
-  $('#payment-split').innerHTML = state.mode === 'one-time' ? `<div><span>Estimated 50% to begin</span><b>${peso(Math.round(q.total / 2))}</b></div><div><span>Estimated 50% at acceptance</span><b>${peso(q.total - Math.round(q.total / 2))}</b></div>` : state.billing === 'annual' ? `<div><span>Monthly equivalent</span><b>${peso(q.total / 12)} / mo</b></div><div><span>Base plan savings vs monthly</span><b>${peso((PRICE.monthly * 12 - PRICE.annual) * state.properties)} / yr</b></div>` : '';
-  $('#estimate-note').textContent = state.mode === 'one-time' ? 'This is an estimate, not a fixed offer. EAJ must approve final one-time pricing and project scope.' : state.face ? 'Face recognition login price is estimated pending implementation review.' : '';
-  $('#terms').innerHTML = terms().map(([heading, body]) => `<div class="term"><strong>${heading}</strong><p>${body}</p></div>`).join('');
+  $('#total-note').textContent = `${peso(q.perProperty)} per property, billed monthly in advance for ${state.properties} ${state.properties === 1 ? 'property' : 'properties'}.`;
+  $('#terms').innerHTML = [
+    ['Monthly billing', 'The base plan and selected add-ons are billed monthly in advance per property.'],
+    ['Included hosting', 'Cloud hosting, SSL, routine platform updates and backups are part of the base subscription.'],
+    ['Add-on prices', 'Displayed add-on rates are planning prices. EAJ will confirm scope and final pricing before activation.'],
+    ['External fees', 'Payment processing, SMS or email delivery, domain registration and other third-party charges are separate.'],
+    ['Account & data', 'Customer accounts are included only with the Booking Website add-on. Access, retention and privacy terms are agreed before launch.'],
+    ['Activation', 'Onboarding, support level and launch schedule are confirmed in the final service agreement.'],
+  ].map(([title, body]) => `<div class="term"><strong>${title}</strong><p>${body}</p></div>`).join('');
+
   const next = new URL(location.href);
-  next.searchParams.set('mode', state.mode);
-  next.searchParams.set('properties', state.properties);
-  if (state.mode === 'subscription') next.searchParams.set('billing', state.billing); else next.searchParams.delete('billing');
-  if (state.face) next.searchParams.set('face', '1'); else next.searchParams.delete('face');
+  ['mode', 'billing', 'face'].forEach(key => next.searchParams.delete(key));
+  next.searchParams.set('properties', String(state.properties));
+  if (state.website === 'none') next.searchParams.delete('website'); else next.searchParams.set('website', state.website);
+  if (state.addons.size) next.searchParams.set('addons', PRICING.addons.filter(addon => state.addons.has(addon.id)).map(addon => addon.id).join(','));
+  else next.searchParams.delete('addons');
   history.replaceState(null, '', next);
 }
 
@@ -78,9 +96,8 @@ function notify(message) {
   notify.timer = setTimeout(() => toast.classList.remove('show'), 2600);
 }
 
-document.querySelectorAll('input[name="mode"]').forEach(input => input.addEventListener('change', () => { state.mode = input.value; render(); }));
-document.querySelectorAll('input[name="billing"]').forEach(input => input.addEventListener('change', () => { state.billing = input.value; render(); }));
-$('#face-addon').addEventListener('change', event => { state.face = event.target.checked; render(); });
+drawAddons();
+document.querySelectorAll('input[name="website"]').forEach(input => input.addEventListener('change', () => { state.website = input.value; render(); }));
 $('#minus').addEventListener('click', () => { state.properties = Math.max(1, state.properties - 1); render(); });
 $('#plus').addEventListener('click', () => { state.properties = Math.min(20, state.properties + 1); render(); });
 $('#properties').addEventListener('change', event => { state.properties = Math.max(1, Math.min(20, parseInt(event.target.value, 10) || 1)); render(); });
