@@ -44,6 +44,8 @@ Change these passwords or omit the demo seed in a real deployment. `DEMO=false` 
 
 ## Current scope
 
+The platform quotation is an in-app page at `/quotation` (also reachable by opening `/quote` in a browser). Its monthly base price, website options, and add-on prices are defined near the top of `resources/js/Pages/Public/Quotation.tsx` for later editing. The `/quote` endpoint still returns room price calculations to the stay page when called with booking parameters.
+
 - Public landing page, stay search, property page, guest checkout, price snapshot, manual payment request, and mock payment confirmation.
 - Guest registration and login, role dashboards, tenant-scoped property and room creation, manual bookings, booking status changes, manual payment records, and superadmin client onboarding, status, and plan assignment.
 - Server-side availability with room quantity, date blocks, temporary holds, same-day turnover, row locking during booking creation, and subscription checks.

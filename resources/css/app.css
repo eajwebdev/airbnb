@@ -99,3 +99,9 @@ html:has(.tapp) { scrollbar-width:thin; scrollbar-color:#cfd5e4 transparent; }
 @media(max-width:767px) { .tapp-dialog { top:auto; bottom:0; left:0; width:100% !important; max-height:92dvh; transform:none; border-radius:20px 20px 0 0; } }
 @media print { body * { visibility:hidden !important; } .print-area,.print-area * { visibility:visible !important; } .print-area { position:absolute; left:0; top:0; width:100%; box-shadow:none !important; } .no-print { display:none !important; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; } }
+@media print {
+  .quotation-page .no-print { display:none !important; }
+  .quotation-page .quote-summary { position:static !important; box-shadow:none !important; break-inside:avoid; }
+  .quotation-page main > section { box-shadow:none !important; break-inside:avoid; }
+  .quotation-page { background:#fff !important; }
+}
