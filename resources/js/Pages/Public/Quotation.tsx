@@ -4,20 +4,19 @@ import { useEffect, useState } from 'react';
 import Shell from '../../Components/Shell';
 
 // Monthly PHP prices per property. Update these when EAJ confirms its rate card.
-const BASE_PRICE = 1799;
+const BASE_PRICE = 1499;
 const WEBSITES = [
   { id: 'none', name: 'No public website', price: 0, eyebrow: 'MANAGEMENT ONLY', description: 'Keep your existing website or booking channels. Use EAJ for your internal reservation workflow.' },
-  { id: 'business', name: 'Business landing page', price: 499, eyebrow: 'SHOWCASE YOUR BRAND', description: 'A branded home page for your business with services, gallery, contact details and an inquiry link.' },
-  { id: 'booking', name: 'Booking website + customer accounts', price: 999, eyebrow: 'DIRECT RESERVATIONS', description: 'Property pages, stay search, checkout, guest registration, sign-in and booking history.' },
+  { id: 'business', name: 'Business landing page', price: 199, eyebrow: 'SHOWCASE YOUR BRAND', description: 'A branded home page for your business with services, gallery, contact details and an inquiry link.' },
+  { id: 'booking', name: 'Booking website + customer accounts', price: 499, eyebrow: 'DIRECT RESERVATIONS', description: 'Property pages, stay search, checkout, guest registration, sign-in and booking history.' },
 ] as const;
 const ADDONS = [
-  { id: 'pos', name: 'Point of sale', price: 499, description: 'Front desk sales, items, charges and transaction records.' },
-  { id: 'cleaning', name: 'Cleaning & staff tasks', price: 299, description: 'Room turnover assignments, status updates and task photos.' },
-  { id: 'promotions', name: 'Promos & seasonal rates', price: 249, description: 'Date-based pricing, discount codes and offers.' },
+  { id: 'pos', name: 'Point of sale', price: 349, description: 'Front desk sales, items, charges and transaction records.' },
+  { id: 'cleaning', name: 'Cleaning & staff tasks', price: 0, description: 'Room turnover assignments, status updates and task photos.' },
+  { id: 'promotions', name: 'Promos & seasonal rates', price: 0, description: 'Date-based pricing, discount codes and offers.' },
   { id: 'messages', name: 'Guest messaging', price: 299, description: 'Message templates and booking communication tools. Delivery fees are separate.' },
-  { id: 'reports', name: 'Advanced reports & insights', price: 349, description: 'Expanded booking, revenue and operations views.' },
   { id: 'payments', name: 'Online payment integration', price: 399, description: 'Connect a supported provider to online booking checkout. Provider fees are separate.', requiresBooking: true },
-  { id: 'face', name: 'Face recognition login', price: 999, description: 'Camera-based staff sign-in with enrollment and a password fallback. Subject to privacy review.' },
+  { id: 'face', name: 'Face recognition login', price: 249, description: 'Camera-based staff sign-in with enrollment and a password fallback. Subject to privacy review.' },
 ] as const;
 type WebsiteId = typeof WEBSITES[number]['id'];
 type AddonId = typeof ADDONS[number]['id'];
@@ -80,14 +79,14 @@ export default function Quotation() {
 
   return <Shell><Head title="EAJ Booking Platform quotation"/><div className="quotation-page print-area bg-[#f6f8fb] text-[#14253c]">
     <section className="bg-[#0a2542] text-white"><div className="container grid gap-9 py-16 lg:grid-cols-[1fr_270px] lg:items-center lg:py-20">
-      <div><p className="text-xs font-bold uppercase tracking-[.23em] text-sky-300">EAJ Web Development Services / Quotation</p><h1 className="mt-5 max-w-3xl font-serif text-5xl leading-tight md:text-6xl">A booking platform that fits your business.</h1><p className="mt-6 max-w-2xl text-base leading-7 text-white/70">Start with reservation essentials at ₱1,799 per month. Choose a public website and add the tools your team needs.</p></div>
+      <div><p className="text-xs font-bold uppercase tracking-[.23em] text-sky-300">EAJ Web Development Services / Quotation</p><h1 className="mt-5 max-w-3xl font-serif text-5xl leading-tight md:text-6xl">A booking platform that fits your business.</h1><p className="mt-6 max-w-2xl text-base leading-7 text-white/70">Start with reservation essentials at {peso(BASE_PRICE)} per month. Choose a public website and add the tools your team needs.</p></div>
       <div className="hidden rounded-3xl border border-white/20 bg-white/5 p-7 lg:block"><p className="text-xs font-bold uppercase tracking-[.2em] text-sky-200">Quote reference</p><p className="mt-3 text-2xl font-bold">EAJ-Q-2026-1013</p><div className="mt-8 border-t border-white/20 pt-5 text-sm leading-7 text-white/70">Prepared for<br/><strong className="text-white">Prospective client</strong><br/>Philippines</div></div>
     </div></section>
 
     <div className="container grid gap-9 py-12 lg:grid-cols-[minmax(0,1fr)_355px] lg:items-start lg:py-16">
       <main className="space-y-10">
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"><SectionHeading number="01" label="Starting plan" title="Booking Core" description="The back-office foundation for your property. Website and specialist modules are optional."/>
-          <div className="mt-7 flex flex-col justify-between gap-5 rounded-2xl bg-[#eaf3f8] p-6 sm:flex-row sm:items-end"><div><p className="text-lg font-bold">EAJ Booking Core</p><p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Property and room setup, availability calendar, manual reservations, guest records, manual payment tracking, basic dashboard and staff access.</p></div><p className="shrink-0 text-2xl font-extrabold text-[#0a456a]">{peso(BASE_PRICE)}<span className="block text-xs font-medium text-slate-500 sm:text-right">/ month / property</span></p></div>
+          <div className="mt-7 flex flex-col justify-between gap-5 rounded-2xl bg-[#eaf3f8] p-6 sm:flex-row sm:items-end"><div><p className="text-lg font-bold">EAJ Booking Core</p><p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">Property and room setup, availability calendar, manual reservations, guest records, manual payment tracking, advanced reports & insights, and staff access.</p></div><p className="shrink-0 text-2xl font-extrabold text-[#0a456a]">{peso(BASE_PRICE)}<span className="block text-xs font-medium text-slate-500 sm:text-right">/ month / property</span></p></div>
           <div className="mt-5 flex flex-wrap gap-2">{['Cloud hosting', 'SSL', 'Routine updates', 'Backups'].map(item => <span key={item} className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">{item}</span>)}</div>
         </section>
 
@@ -95,13 +94,13 @@ export default function Quotation() {
           <div className="mt-7 grid gap-3 md:grid-cols-3" role="radiogroup" aria-label="Website option">{WEBSITES.map(option => <label key={option.id} className={`relative flex cursor-pointer flex-col rounded-2xl border-2 p-5 transition ${website === option.id ? 'border-[#1779a8] bg-[#f0f8fc]' : 'border-slate-200 hover:border-sky-300'}`}><input className="sr-only" type="radio" name="website" value={option.id} checked={website === option.id} onChange={() => selectWebsite(option.id)}/><span className="text-[10px] font-bold tracking-[.14em] text-[#16709d]">{option.eyebrow}</span><strong className="mt-4 text-base leading-snug">{option.name}</strong><span className="mt-2 flex-1 text-xs leading-5 text-slate-500">{option.description}</span><span className="mt-5 text-lg font-extrabold text-[#0a456a]">{option.price ? `+ ${peso(option.price)}` : 'Included'}{option.price > 0 && <small className="ml-1 text-xs font-medium text-slate-500">/ mo</small>}</span>{website === option.id && <Check className="absolute right-4 top-4 text-[#16709d]" size={17}/>}</label>)}</div>
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"><SectionHeading number="03" label="Monthly add-ons" title="Add the modules you need" description="Each selected add-on is billed monthly per property. These prices are estimates that EAJ can update later."/>
-          <div className="mt-7 divide-y divide-slate-100 rounded-2xl border border-slate-200">{ADDONS.map(addon => { const disabled = 'requiresBooking' in addon && website !== 'booking'; const checked = selected.includes(addon.id); return <label key={addon.id} className={`flex gap-4 p-4 sm:items-center sm:p-5 ${disabled ? 'cursor-not-allowed bg-slate-50 opacity-50' : 'cursor-pointer hover:bg-slate-50'}`}><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[#16709d] sm:mt-0" checked={checked} disabled={disabled} onChange={() => toggleAddon(addon.id)}/><span className="min-w-0 flex-1"><strong className="block text-sm">{addon.name}</strong><small className="mt-1 block text-xs leading-5 text-slate-500">{addon.description}</small></span><strong className="shrink-0 text-sm text-[#0a456a]">+ {peso(addon.price)}<span className="block text-right text-[10px] font-medium text-slate-500">/ month</span></strong></label>; })}</div>
+        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"><SectionHeading number="03" label="Monthly add-ons" title="Add the modules you need" description="Select free modules or paid add-ons. Paid prices are monthly per property and can be updated by EAJ later."/>
+          <div className="mt-7 divide-y divide-slate-100 rounded-2xl border border-slate-200">{ADDONS.map(addon => { const disabled = 'requiresBooking' in addon && website !== 'booking'; const checked = selected.includes(addon.id); return <label key={addon.id} className={`flex gap-4 p-4 sm:items-center sm:p-5 ${disabled ? 'cursor-not-allowed bg-slate-50 opacity-50' : 'cursor-pointer hover:bg-slate-50'}`}><input type="checkbox" className="mt-1 size-5 shrink-0 accent-[#16709d] sm:mt-0" checked={checked} disabled={disabled} onChange={() => toggleAddon(addon.id)}/><span className="min-w-0 flex-1"><strong className="block text-sm">{addon.name}</strong><small className="mt-1 block text-xs leading-5 text-slate-500">{addon.description}</small></span><strong className="shrink-0 text-sm text-[#0a456a]">{addon.price === 0 ? 'Free' : `+ ${peso(addon.price)}`}{addon.price > 0 && <span className="block text-right text-[10px] font-medium text-slate-500">/ month</span>}</strong></label>; })}</div>
           <p className="mt-4 text-xs leading-5 text-slate-500">Online payment integration requires the Booking Website add-on. Payment provider and messaging delivery fees are separate. Face recognition needs supported cameras, consent and an agreed privacy process.</p>
         </section>
 
         <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm md:p-8"><SectionHeading number="04" label="Terms" title="Before activation" description="The final agreement confirms scope, prices, support and launch timing."/><div className="mt-7 grid gap-5 sm:grid-cols-2">{[
-          ['Monthly billing', 'The base plan and selected add-ons are billed monthly in advance per property.'],
+          ['Monthly billing', 'The base plan and paid add-ons are billed monthly in advance per property. Free modules have no additional charge.'],
           ['Included services', 'Cloud hosting, SSL, routine updates and backups are included in the base subscription.'],
           ['External charges', 'Payment processing, message delivery, domains and other provider charges are separate.'],
           ['Customer accounts', 'Customer registration and booking history are included with the Booking Website option.'],
@@ -128,5 +127,5 @@ function SectionHeading({ number, label, title, description }: { number: string;
 }
 
 function PriceRow({ label, amount }: { label: string; amount: number }) {
-  return <div className="flex justify-between gap-3"><span className="text-slate-500">{label}</span><strong className="shrink-0">{peso(amount)}</strong></div>;
+  return <div className="flex justify-between gap-3"><span className="text-slate-500">{label}</span><strong className="shrink-0">{amount === 0 ? 'Free' : peso(amount)}</strong></div>;
 }
