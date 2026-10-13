@@ -73,10 +73,13 @@
 .eq-choice b { min-width: 78px; text-align: right; color: var(--eq-ink); font-size: 13px; white-space: nowrap; }
 .eq-choice b small { display: block; margin-top: 2px; color: var(--eq-muted); font-size: 9px; font-weight: 500; }
 .eq-modules { margin: 0 0 0 47px; border-top: 1px solid var(--eq-rule); }
-.eq-module { display: flex; align-items: center; gap: 14px; min-height: 80px; padding: 14px 4px; border-bottom: 1px solid var(--eq-rule); cursor: pointer; }
-.eq-module:hover { background: #f6f7fb; }
-.eq-module.is-disabled { opacity: .42; cursor: not-allowed; }
-.eq-module input { width: 16px; height: 16px; flex: none; accent-color: var(--eq-accent); }
+.eq-module { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 80px; padding: 14px 4px; border: 0; border-bottom: 1px solid var(--eq-rule); background: transparent; color: var(--eq-ink); text-align: left; cursor: pointer; }
+.eq-module:hover:not(:disabled) { background: #f6f7fb; }
+.eq-module:disabled { opacity: .42; cursor: not-allowed; }
+.eq-toggle { position: relative; width: 34px; height: 20px; flex: none; border-radius: 999px; background: #acb4c5; transition: background .16s ease; }
+.eq-toggle::before { content: ''; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0b123230; transition: transform .16s ease; }
+.eq-module[aria-checked="true"] .eq-toggle { background: var(--eq-accent); }
+.eq-module[aria-checked="true"] .eq-toggle::before { transform: translateX(14px); }
 .eq-module-copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
 .eq-module-copy strong { font-size: 12px; font-weight: 750; }
 .eq-module-copy small { font-size: 11px; line-height: 1.5; color: var(--eq-muted); }
@@ -193,8 +196,8 @@
   .eq-choice:not(.is-selected) { display: none; }
   .eq-choice-copy small,.eq-module-copy small { font-size: 9px; }
   .eq-module { min-height: 0; padding: 7px 2px; break-inside: avoid; }
-  .eq-module:not(:has(input:checked)) { display: none; }
-  .eq-module input { display: none; }
+  .eq-module:not([aria-checked="true"]) { display: none; }
+  .eq-toggle { display: none; }
   .eq-terms-grid { gap: 8px; }
   .eq-summary { position: static; margin-top: 20px; break-inside: avoid; }
   .eq-summary-head { padding: 16px; }
