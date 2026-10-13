@@ -218,13 +218,15 @@ class AdminBookingController extends Controller
     public function payment(Request $request, Booking $booking, GuestMessenger $messenger)
     {
         abort_unless($booking->tenant_id === $request->user()->tenant_id, 404);
-        $data = $request->validate(['amount' => 'required|numeric|min:0.01', 'method' => 'required|in:cash,bank_transfer,gcash,maya',
+        $data = $request->validate(['amount' => 'required|numeric|decimal:0,2|min:0.01', 'method' => 'required|in:cash,bank_transfer,gcash,maya',
             'payer_reference' => 'nullable|string|max:100']);
         abort_unless(! in_array($booking->status, ['CANCELLED', 'EXPIRED', 'COMPLETED'], true), 422);
         abort_if(in_array($booking->status, ['PENDING', 'AWAITING_PAYMENT'], true) && $booking->expires_at?->isPast(), 422);
-        $statusBefore = $booking->status;
-        $booking = DB::transaction(function () use ($request, $booking, $data) {
+        [$booking, $statusBefore] = DB::transaction(function () use ($request, $booking, $data) {
             $booking = Booking::whereKey($booking->id)->lockForUpdate()->firstOrFail();
+            $statusBefore = $booking->status;
+            abort_unless(! in_array($booking->status, ['CANCELLED', 'EXPIRED', 'COMPLETED'], true), 422);
+            abort_if(in_array($booking->status, ['PENDING', 'AWAITING_PAYMENT'], true) && $booking->expires_at?->isPast(), 422);
             abort_unless($booking->paidAmount() + (float) $data['amount'] <= (float) $booking->total + 0.001, 422);
             Payment::create(['tenant_id' => $booking->tenant_id, 'booking_id' => $booking->id,
                 'method' => $data['method'], 'provider' => 'manual', 'status' => 'PAID', 'amount' => $data['amount'],
@@ -232,7 +234,7 @@ class AdminBookingController extends Controller
             $booking->syncPaymentStatus();
             $this->audit($request, $booking, 'payment.recorded');
 
-            return $booking;
+            return [$booking, $statusBefore];
         });
         $this->receipt($messenger, $booking, $statusBefore);
 
@@ -254,11 +256,15 @@ class AdminBookingController extends Controller
     public function review(Request $request, Payment $payment, GuestMessenger $messenger)
     {
         abort_unless($payment->tenant_id === $request->user()->tenant_id, 404);
-        $data = $request->validate(['decision' => 'required|in:approve,reject', 'amount' => 'nullable|numeric|min:0.01']);
+        $data = $request->validate(['decision' => 'required|in:approve,reject', 'amount' => 'nullable|numeric|decimal:0,2|min:0.01']);
         abort_unless($payment->status === 'PENDING', 422);
-        $statusBefore = $payment->booking->status;
-        $booking = DB::transaction(function () use ($request, $payment, $data) {
+        [$booking, $statusBefore] = DB::transaction(function () use ($request, $payment, $data) {
             $booking = Booking::whereKey($payment->booking_id)->lockForUpdate()->firstOrFail();
+            $payment = Payment::whereKey($payment->id)->lockForUpdate()->firstOrFail();
+            $statusBefore = $booking->status;
+            abort_unless($payment->status === 'PENDING', 422);
+            abort_unless(! in_array($booking->status, ['CANCELLED', 'EXPIRED', 'COMPLETED'], true), 422);
+            abort_if(in_array($booking->status, ['PENDING', 'AWAITING_PAYMENT'], true) && $booking->expires_at?->isPast(), 422);
             if ($data['decision'] === 'approve') {
                 $amount = (float) ($data['amount'] ?? $payment->amount);
                 abort_unless($booking->paidAmount() + $amount <= (float) $booking->total + 0.001, 422);
@@ -269,7 +275,7 @@ class AdminBookingController extends Controller
             $booking->syncPaymentStatus();
             $this->audit($request, $booking, $data['decision'] === 'approve' ? 'payment.approved' : 'payment.rejected');
 
-            return $booking;
+            return [$booking, $statusBefore];
         });
         if ($data['decision'] === 'approve') {
             $this->receipt($messenger, $booking, $statusBefore);

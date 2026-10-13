@@ -13,8 +13,8 @@ const WEBSITES = [
 const ADDONS = [
   { id: 'pos', name: 'Point of sale', price: 549, description: 'Front desk sales, items, charges and transaction records.' },
   { id: 'messages', name: 'Guest messaging', price: 499, description: 'Message templates and booking communication tools.' },
-  { id: 'payments', name: 'Online payment integration', price: 599, description: 'PayMongo payment links for reservations and checkout on the booking website.' },
-  { id: 'face', name: 'Face recognition attendance', price: 399, description: 'Camera-based staff clock-in and clock-out with attendance records, subject to privacy review.' },
+  { id: 'payments', name: 'Online payment integration', price: 599, description: 'Checkout and payment review flow; live PayMongo connection requires provider setup.' },
+  { id: 'face', name: 'Face recognition attendance', price: 399, description: 'Staff attendance records and manager review are ready. Camera matching requires integration and privacy review.' },
 ] as const;
 const INCLUDED = ['Property and room records', 'Availability calendar', 'Manual reservations', 'Guest and payment records', 'Advanced reports & insights', 'Staff access', 'Cloud hosting, SSL and backups'];
 const CORE_MODULES = [

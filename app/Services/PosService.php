@@ -6,6 +6,7 @@ use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\PosItem;
 use App\Models\PosSale;
+use App\Models\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -21,6 +22,8 @@ class PosService
     {
         return DB::transaction(function () use ($cashier, $data) {
             $tenantId = $cashier->tenant_id;
+            // Serialize sales per business so the next receipt number cannot be issued twice.
+            Tenant::whereKey($tenantId)->lockForUpdate()->firstOrFail();
             $booking = null;
             if (! empty($data['booking_id'])) {
                 $booking = Booking::where('tenant_id', $tenantId)->whereKey($data['booking_id'])->first();
@@ -128,8 +131,8 @@ class PosService
 
     private function nextNumber(int $tenantId): string
     {
-        // Sales are never deleted (voids are kept), so the count gives a gap-free receipt sequence per tenant.
-        $count = PosSale::where('tenant_id', $tenantId)->lockForUpdate()->count();
+        // The tenant row is locked by checkout. Voided receipts remain in the sequence.
+        $count = PosSale::where('tenant_id', $tenantId)->count();
 
         return 'R-'.str_pad((string) ($count + 1), 6, '0', STR_PAD_LEFT);
     }

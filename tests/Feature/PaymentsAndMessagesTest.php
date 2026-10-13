@@ -114,6 +114,7 @@ class PaymentsAndMessagesTest extends TestCase
         $this->assertSame('CONFIRMED', $booking->fresh()->status);
         $this->actingAs($admin)->post("/admin/bookings/{$booking->id}/payments", ['amount' => 1000, 'method' => 'cash', 'payer_reference' => 'OR-55'])->assertRedirect();
         $this->assertSame('PAID', $booking->fresh()->payment_status);
+        $this->post("/admin/bookings/{$booking->id}/payments", ['amount' => 0.001, 'method' => 'cash'])->assertSessionHasErrors('amount');
         $this->assertSame(1, $this->sent('Payment received'));
         $this->assertDatabaseHas('payments', ['booking_id' => $booking->id, 'payer_reference' => 'OR-55']);
     }

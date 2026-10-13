@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\AdminAddOnController;
+use App\Http\Controllers\AdminAttendanceController;
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminCalendarController;
 use App\Http\Controllers\AdminCleaningController;
@@ -54,6 +55,7 @@ Route::middleware(['auth', 'role:ADMIN,STAFF', 'tenant.active'])->prefix('admin'
     Route::delete('/settings/profile', [AccountController::class, 'destroy'])->middleware('throttle:6,1')->name('profile.destroy');
     Route::get('/settings/help', fn () => Inertia::render('Admin/Help'))->name('help');
     Route::get('/calendar', [AdminCalendarController::class, 'index'])->name('calendar.index');
+    Route::get('/attendance', [AdminAttendanceController::class, 'index'])->name('attendance.index');
     Route::put('/cleaning/{task}', [AdminCleaningController::class, 'update'])->name('cleaning.update');
     Route::get('/my-tasks', [AdminCleaningController::class, 'mine'])->name('tasks.mine');
     Route::post('/cleaning/{task}/photos', [AdminCleaningController::class, 'storePhoto'])->middleware('throttle:30,1')->name('cleaning.photos.store');
@@ -73,12 +75,17 @@ Route::middleware(['auth', 'role:ADMIN,STAFF', 'tenant.active'])->prefix('admin'
     Route::post('/bookings/{booking}/charges/settle', [AdminBookingController::class, 'settleCharges'])->name('bookings.charges.settle');
     Route::put('/payments/{payment}/review', [AdminBookingController::class, 'review'])->name('payments.review');
 });
+Route::middleware(['auth', 'role:STAFF', 'tenant.active'])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('/attendance/clock-in', [AdminAttendanceController::class, 'clockIn'])->name('attendance.clock-in');
+    Route::post('/attendance/clock-out', [AdminAttendanceController::class, 'clockOut'])->name('attendance.clock-out');
+});
 Route::middleware(['auth', 'role:ADMIN', 'tenant.active'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/today/export', [DashboardController::class, 'exportDay'])->name('today.export');
     Route::get('/reports', fn (Request $request) => redirect()->route('admin.insights.index', $request->query()))->name('reports.index');
     Route::get('/reports/export', [AdminReportController::class, 'export'])->name('reports.export');
     Route::get('/insights', [AdminInsightsController::class, 'index'])->name('insights.index');
     Route::get('/cleaning', [AdminCleaningController::class, 'index'])->name('cleaning.index');
+    Route::put('/attendance/{entry}', [AdminAttendanceController::class, 'correct'])->whereNumber('entry')->name('attendance.correct');
     Route::post('/calendar/blocks', [AdminCalendarController::class, 'block'])->name('calendar.blocks.store');
     Route::delete('/calendar/blocks/{blockedDate}', [AdminCalendarController::class, 'unblock'])->name('calendar.blocks.destroy');
     Route::get('/settings/seasons', [AdminSeasonalRateController::class, 'index'])->name('seasons.index');

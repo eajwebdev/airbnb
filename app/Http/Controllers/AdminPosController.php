@@ -9,7 +9,9 @@ use App\Models\PosSale;
 use App\Services\PosService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class AdminPosController extends Controller
@@ -123,8 +125,17 @@ class AdminPosController extends Controller
     {
         abort_unless($item->tenant_id === $request->user()->tenant_id, 404);
         $data = $request->validate(['change' => ['required', 'integer', 'between:-100000,100000', 'not_in:0']]);
-        abort_unless($item->track_stock, 422);
-        $item->increment('stock', $data['change']);
+        $item = DB::transaction(function () use ($item, $data) {
+            $locked = PosItem::whereKey($item->id)->lockForUpdate()->firstOrFail();
+            abort_unless($locked->track_stock, 422);
+            $next = $locked->stock + $data['change'];
+            if ($next < 0) {
+                throw ValidationException::withMessages(['change' => 'Stock cannot go below zero.']);
+            }
+            $locked->update(['stock' => $next]);
+
+            return $locked;
+        });
         $this->audit($request, $item, 'pos_item.stock_adjusted', ['change' => $data['change'], 'stock' => $item->stock]);
 
         return back()->with('success', "{$item->name}: {$item->stock} in stock.");

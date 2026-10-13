@@ -71,7 +71,7 @@ Tests cover repeatable seeding, the public catalog, authentication, role access,
 
 ## Production deployment gates
 
-The admin dashboard is for managers. Staff enter at `/admin/my-tasks` and have a smaller, phone-focused workspace for assigned cleaning, bookings, calendar, and POS. Management reports, cleaning assignment, and exports require an administrator account.
+The admin dashboard is for managers. Staff enter at `/admin/my-tasks` and have a smaller, phone-focused workspace for assigned cleaning, attendance, bookings, calendar, and POS. Managers can review attendance by date and correct recorded times with an audited reason. Attendance currently uses staff clock in/out; face verification is not implemented. Management reports, cleaning assignment, and exports require an administrator account.
 
 Before taking real reservations, configure a production `.env` with `APP_ENV=production`, `APP_DEBUG=false`, `DEMO=false`, HTTPS `APP_URL`, a persistent MySQL database, `MAIL_MAILER` with a working sender, and monitored backups. Build assets, run migrations, start the scheduler and queue worker, and verify outgoing mail and restore from backup on the actual host. Do not load the demo seeder or use its credentials.
 

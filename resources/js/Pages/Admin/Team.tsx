@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import SettingsLayout from '../../Components/SettingsLayout';
 
 type Member = { id: number; name: string; email: string; role: 'ADMIN' | 'STAFF'; deactivated_at: string | null; created_at: string };
-const roles = { ADMIN: 'Admin: operations, reports, settings and team', STAFF: 'Staff: assigned tasks, reservations, calendar and POS' };
+const roles = { ADMIN: 'Admin: operations, attendance, reports, settings and team', STAFF: 'Staff: assigned tasks, attendance, reservations, calendar and POS' };
 
 export default function Team({ members, me }: { members: Member[]; me: number }) {
   const form = useForm({ name: '', email: '', role: 'STAFF' as Member['role'], password: '' });

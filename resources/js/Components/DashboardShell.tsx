@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { BookOpen, Building2, CalendarDays, ChartLine, ChevronDown, CircleHelp, ClipboardCheck, Ellipsis, Globe, LayoutGrid, LogOut, Menu, Settings, ShoppingBasket, SprayCan, Users, X } from 'lucide-react';
+import { BookOpen, Building2, CalendarDays, ChartLine, ChevronDown, CircleHelp, ClipboardCheck, Clock3, Ellipsis, Globe, LayoutGrid, LogOut, Menu, Settings, ShoppingBasket, SprayCan, Users, X } from 'lucide-react';
 import { useEffect, useState, type PropsWithChildren, type ReactNode } from 'react';
 import FlashToast from './FlashToast';
 
@@ -7,13 +7,14 @@ type Props = PropsWithChildren<{ title?: string; subtitle?: ReactNode; actions?:
 type NavItem = readonly [href: string, label: string, icon: typeof LayoutGrid];
 
 const opsNav: readonly NavItem[] = [
-  ['/admin', 'Dashboard', LayoutGrid], ['/admin/calendar', 'Calendar', CalendarDays], ['/admin/cleaning', 'Cleaning', SprayCan],
+  ['/admin', 'Dashboard', LayoutGrid], ['/admin/calendar', 'Calendar', CalendarDays], ['/admin/cleaning', 'Cleaning', SprayCan], ['/admin/attendance', 'Attendance', Clock3],
   ['/admin/bookings', 'Booking', BookOpen], ['/admin/pos', 'POS', ShoppingBasket], ['/admin/insights', 'Insights', ChartLine],
 ];
 const staffNav: readonly NavItem[] = [
-  ['/admin/my-tasks', 'My tasks', ClipboardCheck], ['/admin/bookings', 'Bookings', BookOpen],
+  ['/admin/my-tasks', 'My tasks', ClipboardCheck], ['/admin/attendance', 'Attendance', Clock3], ['/admin/bookings', 'Bookings', BookOpen],
   ['/admin/calendar', 'Calendar', CalendarDays], ['/admin/pos', 'POS', ShoppingBasket],
 ];
+const staffShortcuts: readonly NavItem[] = staffNav.filter(([href]) => href !== '/admin/calendar');
 const platformNav: readonly NavItem[] = [['/superadmin', 'Overview', LayoutGrid], ['/superadmin/clients', 'Clients', Users]];
 const moreLinks: readonly NavItem[] = [['/admin/properties', 'Properties & units', Building2], ['/', 'Guest site', Globe], ['/admin/settings/help', 'Help & guides', CircleHelp]];
 
@@ -80,7 +81,7 @@ export default function DashboardShell({ children, title, subtitle, actions, pla
       </>}
     </div>
     {staff && <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-[var(--line)] bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(10,17,52,.08)] md:hidden" aria-label="Staff shortcuts">
-      {staffNav.map(([href, label, Icon]) => <Link key={href} href={href} aria-current={isActive(href) ? 'page' : undefined} className={`flex min-h-[62px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-bold ${isActive(href) ? 'text-[#F3176C]' : 'text-[#66708a]'}`}><Icon size={20}/><span>{label}</span></Link>)}
+      {staffShortcuts.map(([href, label, Icon]) => <Link key={href} href={href} aria-current={isActive(href) ? 'page' : undefined} className={`flex min-h-[62px] flex-col items-center justify-center gap-1 px-1 text-[11px] font-bold ${isActive(href) ? 'text-[#F3176C]' : 'text-[#66708a]'}`}><Icon size={20}/><span>{label}</span></Link>)}
     </nav>}
   </div>;
 }

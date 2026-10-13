@@ -311,6 +311,8 @@ class OperationsAndPosTest extends TestCase
         $this->assertSame('VOID', $sale->fresh()->status);
         $this->assertSame(48, $water->fresh()->stock);
         $this->assertDatabaseHas('audit_logs', ['action' => 'pos.void', 'entity_id' => $sale->id]);
+        $this->actingAs($staff)->post('/admin/pos/sales', ['lines' => [['item_id' => $water->id, 'quantity' => 1]], 'payment_method' => 'cash'])->assertRedirect();
+        $this->assertSame('R-000002', PosSale::latest('id')->firstOrFail()->number);
     }
 
     public function test_room_charges_block_checkout_until_settled(): void
@@ -342,6 +344,8 @@ class OperationsAndPosTest extends TestCase
         $this->actingAs($admin)->post('/admin/settings/pos-items', ['name' => 'Sunscreen', 'category' => 'Shop', 'price' => 250, 'track_stock' => true, 'stock' => 10, 'active' => true])->assertRedirect();
         $item = PosItem::where('name', 'Sunscreen')->firstOrFail();
         $this->put('/admin/settings/pos-items/'.$item->id.'/stock', ['change' => -3])->assertRedirect();
+        $this->assertSame(7, $item->fresh()->stock);
+        $this->put('/admin/settings/pos-items/'.$item->id.'/stock', ['change' => -8])->assertSessionHasErrors('change');
         $this->assertSame(7, $item->fresh()->stock);
         $this->put('/admin/settings/pos-items/'.$item->id, ['name' => 'Sunscreen SPF50', 'category' => 'Shop', 'price' => 280, 'track_stock' => false, 'stock' => null, 'active' => true])->assertRedirect();
         $this->assertDatabaseHas('pos_items', ['id' => $item->id, 'name' => 'Sunscreen SPF50', 'track_stock' => false, 'stock' => 0]);
