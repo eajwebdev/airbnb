@@ -24,6 +24,12 @@ body { margin:0; color:var(--foreground); font-family:Inter,ui-sans-serif,system
 .icon-button:hover { background:#f1f3f8; }
 .guest-site { --guest-primary:#0A1134; --guest-accent:#F3176C; color:var(--guest-primary); background:#faf9f6; }
 .guest-header { position:sticky; top:0; z-index:40; border-bottom:1px solid rgba(0,0,0,.08); background:rgba(255,255,255,.96); backdrop-filter:blur(16px); }
+.guest-brand { position:relative; display:block; width:160px; height:64px; flex:none; overflow:hidden; }
+.guest-brand img { position:absolute; top:-25px; left:-12px; width:180px; max-width:none; }
+.guest-brand.has-tenant-logo { display:flex; align-items:center; justify-content:flex-start; width:auto; max-width:190px; padding:4px; }
+.guest-brand.has-tenant-logo img { position:static; width:auto; max-width:180px; max-height:54px; object-fit:contain; }
+.guest-menu-button { display:inline-flex; width:44px; height:44px; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; }
+.guest-menu-button:hover { background:#f1f3f8; }
 .guest-nav { align-items:center; gap:2rem; font-size:.9rem; font-weight:650; }
 .guest-nav a:hover,.guest-nav button:hover { color:var(--guest-accent); }
 .guest-nav-cta { display:inline-flex; align-items:center; gap:.4rem; border-radius:999px; background:var(--guest-primary); padding:.75rem 1.2rem; color:#fff !important; }
@@ -41,6 +47,8 @@ body { margin:0; color:var(--foreground); font-family:Inter,ui-sans-serif,system
 .gallery-dialog { position:fixed; inset:50% auto auto 50%; z-index:91; width:min(100vw - 24px,1100px); height:min(90dvh,800px); transform:translate(-50%,-50%); border-radius:20px; background:#0b1020; overflow:hidden; }.gallery-arrow { position:absolute; top:50%; display:grid; width:44px; height:44px; place-items:center; transform:translateY(-50%); border-radius:50%; background:#fff; color:#0A1134; cursor:pointer; }
 .dashboard-grid { display:grid; gap:1.25rem; }.metric-card { border:1px solid var(--border); border-radius:20px; background:white; padding:1.35rem; }.metric-card strong { display:block; margin-top:.8rem; font-size:1.85rem; letter-spacing:-.04em; }.metric-card small { color:var(--brand-slate); font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
 @media(max-width:767px) { .guest-nav { position:absolute; top:80px; left:0; right:0; flex-direction:column; align-items:stretch; gap:0; border-bottom:1px solid var(--border); background:white; padding:1rem; box-shadow:0 15px 25px #0a11341a; }.guest-nav>* { padding:.75rem; }.date-dialog { top:auto; bottom:0; left:0; width:100%; max-height:90dvh; transform:none; border-radius:24px 24px 0 0; }.container { width:min(100% - 1.5rem,1200px); } }
+@media(min-width:768px) { .guest-menu-button { display:none; } }
+@media(max-width:480px) { .guest-brand { width:130px; }.guest-brand img { width:160px; top:-21px; left:-14px; }.guest-brand.has-tenant-logo { max-width:145px; }.guest-brand.has-tenant-logo img { max-width:135px; } }
 @media(max-width:767px) { .dashboard-sidebar { position:fixed; z-index:50; top:64px; bottom:0; left:0; width:min(86vw,300px); overflow-y:auto; box-shadow:18px 0 50px #0a11342e; }.dashboard-sidebar>div { min-height:100%; } }
 /* ── tapp operations theme. Scoped to .tapp (admin shell) and the .tapp-dialog/.tapp-drawer portals so the public guest site keeps its own branding. ── */
 .tapp,.tapp-dialog,.tapp-drawer { --color-navy:#0A1134; --color-pink:#F3176C; --color-slate:#6B7793; --brand-navy:#0A1134; --brand-pink:#F3176C; --brand-slate:#6B7793; --foreground:#0A1134; --border:#e1e5ed; --surface-muted:#f0f2f8; --mint:#ffe8f1; --ink:#0A1134; --muted:#6B7793; --line:#e4e8f0; --canvas:#f5f6fa; --danger:#c2453d; --warn:#c98a1b;
