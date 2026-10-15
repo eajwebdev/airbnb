@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\BlockedDate;
 use App\Models\Booking;
+use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\PosItem;
 use App\Models\Property;
@@ -147,9 +148,10 @@ class DemoSeeder extends Seeder
         $checkIn = today()->addDays($in)->toDateString();
         $checkOut = today()->addDays($out)->toDateString();
         $quote = app(PricingService::class)->quote($room, $checkIn, $checkOut, 2);
+        $customer = Customer::fromGuest($room->tenant_id, ['guest_name' => $guest->name, 'guest_email' => $guest->email], $guest->id);
         $booking = Booking::updateOrCreate(['reference' => $reference], [
             'tenant_id' => $room->tenant_id, 'property_id' => $room->property_id, 'room_id' => $room->id,
-            'user_id' => $guest->id, 'guest_name' => $guest->name, 'guest_email' => $guest->email,
+            'user_id' => $guest->id, 'customer_id' => $customer->id, 'guest_name' => $guest->name, 'guest_email' => $guest->email,
             'check_in' => $checkIn, 'check_out' => $checkOut, 'guests' => 2,
             'status' => $status, 'payment_status' => $paymentStatus,
             'total' => $quote['total'], 'expires_at' => $expiresAt,

@@ -48,6 +48,8 @@ The platform quotation is an in-app page at `/quotation` (also reachable by open
 
 - Public landing page, stay search, property page, guest checkout, price snapshot, manual payment request, and mock payment confirmation.
 - Guest registration and login, role dashboards, tenant-scoped property and room creation, manual bookings, booking status changes, manual payment records, and superadmin client onboarding, status, and plan assignment.
+- Tenant-scoped customer profiles with booking history, paid-spend totals, VIP/blocking status and private notes. Philippine mobile numbers are normalized to `+63` format.
+- Verified completed-stay reviews with one review per booking, guest submission, admin moderation, and approved reviews on the public property page.
 - Server-side availability with room quantity, date blocks, temporary holds, same-day turnover, row locking during booking creation, and subscription checks.
 - Monthly plan at ₱3,499 and annual plan at ₱29,988 billed yearly (₱2,499 monthly equivalent, ₱12,000 annual savings). Subscription records snapshot billing values.
 - Local Philippine defaults: PHP currency and Asia/Manila timezone.
@@ -67,7 +69,7 @@ npx.cmd tsc --noEmit
 npm.cmd run build
 ```
 
-Tests cover repeatable seeding, the public catalog, authentication, role access, tenant isolation, booking overlap and turnover, blocked dates, pricing, mock and manual payments, booking transitions, plan price snapshots, client locking, and expiry commands.
+Tests cover repeatable seeding, the public catalog, authentication, role access, tenant isolation, booking overlap and turnover, blocked dates, pricing, mock and manual payments, booking transitions, customers, reviews, plan price snapshots, client locking, and expiry commands.
 
 ## Operations
 

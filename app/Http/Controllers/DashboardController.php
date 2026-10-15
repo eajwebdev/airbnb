@@ -151,7 +151,7 @@ class DashboardController extends Controller
 
     public function account(Request $request)
     {
-        return Inertia::render('Guest/Bookings', ['bookings' => Booking::with('property', 'room')->where('user_id', $request->user()->id)->latest()->get()]);
+        return Inertia::render('Guest/Bookings', ['bookings' => Booking::with('property', 'room', 'review')->where('user_id', $request->user()->id)->latest()->get()]);
     }
 
     public function branding(Request $request)

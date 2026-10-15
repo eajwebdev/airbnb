@@ -6,9 +6,11 @@ use App\Models\AddOn;
 use App\Models\AuditLog;
 use App\Models\BlockedDate;
 use App\Models\Booking;
+use App\Models\Customer;
 use App\Models\MessageTemplate;
 use App\Models\PromoCode;
 use App\Models\Property;
+use App\Models\Review;
 use App\Models\SeasonalRate;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -87,6 +89,8 @@ class AdminDataController extends Controller
             'promo_codes' => PromoCode::where('tenant_id', $id)->get(),
             'add_ons' => AddOn::where('tenant_id', $id)->get(),
             'message_templates' => MessageTemplate::where('tenant_id', $id)->get(),
+            'customers' => Customer::where('tenant_id', $id)->get(),
+            'reviews' => Review::where('tenant_id', $id)->get(),
             'blocked_dates' => BlockedDate::where('tenant_id', $id)->get(),
             'bookings' => Booking::withTrashed()->with('price', 'payments', 'messages')->where('tenant_id', $id)->orderBy('id')->get(),
         ];

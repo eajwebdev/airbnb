@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Booking;
+use App\Models\Customer;
 use App\Models\Payment;
 use App\Models\PosSale;
 use App\Models\Room;
@@ -191,7 +192,8 @@ class AdminBookingController extends Controller
         $data = $request->validate(['guest_name' => 'required|string|max:120', 'guest_email' => 'nullable|email|max:255',
             'guest_phone' => 'nullable|string|max:120', 'source' => 'required|in:'.implode(',', array_keys(Booking::SOURCES)),
             'check_in_time' => 'nullable|date_format:H:i', 'check_out_time' => 'nullable|date_format:H:i', 'notes' => 'nullable|string|max:1000']);
-        $booking->update($data);
+        $customer = Customer::fromGuest($booking->tenant_id, $data, $booking->user_id);
+        $booking->update([...$data, 'guest_email' => $customer->email, 'guest_phone' => $customer->phone, 'customer_id' => $customer->id]);
         $this->audit($request, $booking, 'booking.updated');
 
         return back()->with('success', 'Booking details saved.');

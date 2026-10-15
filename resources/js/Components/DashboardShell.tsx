@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { Activity, BookOpen, Building2, CalendarDays, ChartLine, ChevronDown, CircleHelp, ClipboardCheck, Clock3, Ellipsis, Globe, LayoutGrid, LogOut, Menu, Settings, ShoppingBasket, SprayCan, Users, X } from 'lucide-react';
+import { Activity, BookOpen, Building2, CalendarDays, ChartLine, ChevronDown, CircleHelp, ClipboardCheck, Clock3, Ellipsis, Globe, LayoutGrid, LogOut, Menu, Settings, ShoppingBasket, SprayCan, Star, Users, X } from 'lucide-react';
 import { useEffect, useState, type PropsWithChildren, type ReactNode } from 'react';
 import FlashToast from './FlashToast';
 
@@ -16,7 +16,7 @@ const staffNav: readonly NavItem[] = [
 ];
 const staffShortcuts: readonly NavItem[] = staffNav.filter(([href]) => href !== '/admin/calendar');
 const platformNav: readonly NavItem[] = [['/superadmin', 'Overview', LayoutGrid], ['/superadmin/clients', 'Clients', Users], ['/superadmin/health', 'System health', Activity]];
-const moreLinks: readonly NavItem[] = [['/admin/properties', 'Properties & units', Building2], ['/', 'Guest site', Globe], ['/admin/settings/help', 'Help & guides', CircleHelp]];
+const moreLinks: readonly NavItem[] = [['/admin/properties', 'Properties & units', Building2], ['/admin/customers', 'Customers', Users], ['/admin/reviews', 'Reviews', Star], ['/', 'Guest site', Globe], ['/admin/settings/help', 'Help & guides', CircleHelp]];
 
 /** The EAJ artwork ships on a navy background, so it is cropped to the mark and wordmark and sits on the navy sidebar. */
 function Logo({ platform, staff, compact = false }: { platform: boolean; staff: boolean; compact?: boolean }) {

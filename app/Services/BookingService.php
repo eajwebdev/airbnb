@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AuditLog;
 use App\Models\Booking;
+use App\Models\Customer;
 use App\Models\PromoCode;
 use App\Models\Room;
 use Carbon\CarbonImmutable;
@@ -33,11 +34,15 @@ class BookingService
             } catch (\InvalidArgumentException $e) {
                 throw ValidationException::withMessages(['check_out' => $e->getMessage()]);
             }
+            $customer = Customer::fromGuest($room->tenant_id, $data, $userId);
+            if ($customer->status === 'BLOCKED') {
+                throw ValidationException::withMessages(['guest_email' => 'This guest cannot create a reservation. Please contact the property.']);
+            }
             $booking = Booking::create([
                 'reference' => $settings['reference_prefix'].'-'.now()->format('Y').'-'.strtoupper(substr((string) Str::ulid(), -8)),
                 'tenant_id' => $room->tenant_id, 'property_id' => $room->property_id, 'room_id' => $room->id,
-                'user_id' => $userId, 'guest_name' => $data['guest_name'], 'guest_email' => $data['guest_email'] ?? null,
-                'guest_phone' => $data['guest_phone'] ?? null, 'check_in' => $data['check_in'],
+                'user_id' => $userId, 'customer_id' => $customer->id, 'guest_name' => $data['guest_name'], 'guest_email' => $customer->email,
+                'guest_phone' => $customer->phone, 'check_in' => $data['check_in'],
                 'source' => $data['source'] ?? 'direct', 'group_code' => $data['group_code'] ?? null, 'notes' => $data['notes'] ?? null,
                 'check_in_time' => $data['check_in_time'] ?? null, 'check_out_time' => $data['check_out_time'] ?? null,
                 'check_out' => $data['check_out'], 'guests' => $data['guests'], 'total' => $quote['total'], 'promo_code_id' => $promo?->id,

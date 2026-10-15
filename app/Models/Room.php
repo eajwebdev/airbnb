@@ -28,6 +28,11 @@ class Room extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
     /** Room overrides win; otherwise the tenant's booking rules apply. */
     public function stayLimits(?array $tenantSettings = null): array
     {

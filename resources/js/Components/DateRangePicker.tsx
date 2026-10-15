@@ -15,7 +15,7 @@ export default function DateRangePicker({ value, onChange, mode = 'booking', lab
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DateRange>(value);
   const [month, setMonth] = useState(() => { const date = value.start ? parse(value.start) : new Date(); return new Date(date.getFullYear(), date.getMonth(), 1); });
-  useEffect(() => { if (open) { setDraft(value); setMonth(new Date((value.start ? parse(value.start) : new Date()).getFullYear(), (value.start ? parse(value.start) : new Date()).getMonth(), 1)); } }, [open, value.start, value.end]);
+  useEffect(() => { if (open) { setDraft({ start: value.start, end: value.end }); setMonth(new Date((value.start ? parse(value.start) : new Date()).getFullYear(), (value.start ? parse(value.start) : new Date()).getMonth(), 1)); } }, [open, value.start, value.end]);
   const today = iso(new Date());
   const days = Array.from({ length: new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate() }, (_, i) => new Date(month.getFullYear(), month.getMonth(), i + 1, 12));
   const offset = (new Date(month.getFullYear(), month.getMonth(), 1).getDay() + 6) % 7;

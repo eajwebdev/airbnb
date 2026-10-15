@@ -60,6 +60,16 @@ class Booking extends Model
         return $this->belongsTo(Tenant::class);
     }
 
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function review(): HasOne
+    {
+        return $this->hasOne(Review::class);
+    }
+
     public function messages(): HasMany
     {
         return $this->hasMany(BookingMessage::class);

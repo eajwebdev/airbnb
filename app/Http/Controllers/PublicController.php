@@ -6,10 +6,11 @@ use App\Models\AddOn;
 use App\Models\Booking;
 use App\Models\PromoCode;
 use App\Models\Property;
+use App\Models\Review;
 use App\Models\Room;
 use App\Models\Tenant;
-use App\Services\AvailabilityService;
 use App\Payments\PaymentService;
+use App\Services\AvailabilityService;
 use App\Services\BookingService;
 use App\Services\GuestMessenger;
 use App\Services\PricingService;
@@ -87,8 +88,13 @@ class PublicController extends Controller
             ->get(['id', 'name', 'description', 'price', 'pricing', 'max_quantity', 'room_ids'])
             ->filter(fn (AddOn $addOn) => $property->rooms->contains(fn (Room $room) => $addOn->appliesToRoom($room->id)))->values();
 
+        $reviewQuery = Review::where('property_id', $property->id)->where('approved', true);
+        $reviewSummary = ['count' => (clone $reviewQuery)->count(), 'average' => (clone $reviewQuery)->avg('rating')];
+        $reviews = $reviewQuery->with('user:id,name')->latest()->limit(12)->get();
+
         return Inertia::render('Public/Stay', ['property' => $property, 'tenant' => $property->tenant, 'bookable' => $property->tenant->acceptsBookings(),
-            'selection' => $selection, 'addOns' => $addOns]);
+            'selection' => $selection, 'addOns' => $addOns, 'reviews' => $reviews,
+            'reviewSummary' => ['count' => $reviewSummary['count'], 'average' => $reviewSummary['average'] === null ? null : round((float) $reviewSummary['average'], 1)]]);
     }
 
     public function availability(Request $request, AvailabilityService $service)

@@ -25,6 +25,11 @@ class Property extends Model
         return $this->hasMany(Room::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
     public function getRouteKeyName(): string
     {
         return 'slug';

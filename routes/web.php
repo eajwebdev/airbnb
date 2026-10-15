@@ -6,6 +6,7 @@ use App\Http\Controllers\AdminAttendanceController;
 use App\Http\Controllers\AdminBookingController;
 use App\Http\Controllers\AdminCalendarController;
 use App\Http\Controllers\AdminCleaningController;
+use App\Http\Controllers\AdminCustomerController;
 use App\Http\Controllers\AdminDataController;
 use App\Http\Controllers\AdminInsightsController;
 use App\Http\Controllers\AdminMessageController;
@@ -13,11 +14,13 @@ use App\Http\Controllers\AdminPosController;
 use App\Http\Controllers\AdminPromoCodeController;
 use App\Http\Controllers\AdminPropertyController;
 use App\Http\Controllers\AdminReportController;
+use App\Http\Controllers\AdminReviewController;
 use App\Http\Controllers\AdminSeasonalRateController;
 use App\Http\Controllers\AdminSettingsController;
 use App\Http\Controllers\AdminTeamController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GuestReviewController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SuperadminHealthController;
 use App\Http\Controllers\SuperadminTenantController;
@@ -47,6 +50,7 @@ Route::post('/demo/login', [AuthController::class, 'demo'])->middleware('throttl
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 Route::middleware(['auth', 'role:GUEST'])->prefix('account')->name('account.')->group(function () {
     Route::get('/bookings', [DashboardController::class, 'account'])->name('bookings');
+    Route::post('/reviews', [GuestReviewController::class, 'store'])->middleware('throttle:5,1')->name('reviews.store');
 });
 Route::middleware(['auth', 'role:ADMIN,STAFF', 'tenant.active'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/', [DashboardController::class, 'admin'])->name('dashboard');
@@ -86,6 +90,12 @@ Route::middleware(['auth', 'role:ADMIN', 'tenant.active'])->prefix('admin')->nam
     Route::get('/reports', fn (Request $request) => redirect()->route('admin.insights.index', $request->query()))->name('reports.index');
     Route::get('/reports/export', [AdminReportController::class, 'export'])->name('reports.export');
     Route::get('/insights', [AdminInsightsController::class, 'index'])->name('insights.index');
+    Route::get('/customers', [AdminCustomerController::class, 'index'])->name('customers.index');
+    Route::get('/customers/{customer}', [AdminCustomerController::class, 'show'])->whereNumber('customer')->name('customers.show');
+    Route::put('/customers/{customer}', [AdminCustomerController::class, 'update'])->whereNumber('customer')->name('customers.update');
+    Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
+    Route::put('/reviews/{review}', [AdminReviewController::class, 'update'])->whereNumber('review')->name('reviews.update');
+    Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->whereNumber('review')->name('reviews.destroy');
     Route::get('/cleaning', [AdminCleaningController::class, 'index'])->name('cleaning.index');
     Route::put('/attendance/{entry}', [AdminAttendanceController::class, 'correct'])->whereNumber('entry')->name('attendance.correct');
     Route::post('/calendar/blocks', [AdminCalendarController::class, 'block'])->name('calendar.blocks.store');

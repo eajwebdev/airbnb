@@ -50,12 +50,13 @@ export default function Quotation() {
   const issued = new Intl.DateTimeFormat('en-PH', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Manila' }).format(new Date());
 
   useEffect(() => {
+    const urlAddons = ADDONS.filter(addon => selected.includes(addon.id));
     const url = new URL(window.location.href);
     ['mode', 'billing', 'face'].forEach(key => url.searchParams.delete(key));
     url.searchParams.set('properties', String(properties));
     if (website === 'none') url.searchParams.delete('website');
     else url.searchParams.set('website', website);
-    if (chosenAddons.length) url.searchParams.set('addons', chosenAddons.map(addon => addon.id).join(','));
+    if (urlAddons.length) url.searchParams.set('addons', urlAddons.map(addon => addon.id).join(','));
     else url.searchParams.delete('addons');
     window.history.replaceState(window.history.state, '', url);
   }, [properties, website, selected]);

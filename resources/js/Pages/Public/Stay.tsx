@@ -1,18 +1,22 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, Check, MapPin, Users } from 'lucide-react';
-import { Fragment, useEffect, useState, type FormEvent } from 'react';
+import { ArrowLeft, ArrowRight, Check, MapPin, Star } from 'lucide-react';
+import { Fragment, useEffect, useMemo, useState, type FormEvent } from 'react';
 import DateRangePicker, { type DateRange } from '../../Components/DateRangePicker';
 import GuestShell, { type SiteTenant } from '../../Components/GuestShell';
 import ImageGallery from '../../Components/ImageGallery';
 import type { Property, Room } from '../../types';
 import { includedGuests, money, pricingLabel, roomSpecs, time12, type AddOn, type Quote } from '../../types';
 
-export default function Stay({ property, tenant, bookable, selection, addOns = [] }: {
+type GuestReview = { id: number; rating: number; comment: string | null; created_at: string; user: { name: string } | null };
+
+export default function Stay({ property, tenant, bookable, selection, addOns = [], reviews = [], reviewSummary }: {
   property: Property;
   tenant: SiteTenant;
   bookable: boolean;
   selection?: { check_in?: string; check_out?: string; guests?: number };
   addOns?: AddOn[];
+  reviews?: GuestReview[];
+  reviewSummary?: { count: number; average: number | null };
 }) {
   const [roomId, setRoomId] = useState(property.rooms[0]?.id || 0);
   const [dates, setDates] = useState<DateRange>({ start: selection?.check_in || '', end: selection?.check_out || '' });
@@ -30,7 +34,7 @@ export default function Stay({ property, tenant, bookable, selection, addOns = [
   const [promoInput, setPromoInput] = useState('');
   const [promo, setPromo] = useState('');
   const [promoError, setPromoError] = useState('');
-  const eligible = property.rooms.filter(room => room.maximum_occupancy >= guests);
+  const eligible = useMemo(() => property.rooms.filter(room => room.maximum_occupancy >= guests), [property.rooms, guests]);
 
   useEffect(() => {
     if (!dates.start || !dates.end) { setAvailability({}); setRuleMessage(''); setChecking(false); return; }
@@ -56,7 +60,7 @@ export default function Stay({ property, tenant, bookable, selection, addOns = [
 
   useEffect(() => {
     if (!eligible.some(room => room.id === roomId)) setRoomId(eligible[0]?.id || 0);
-  }, [guests, roomId, property.rooms]);
+  }, [eligible, roomId]);
 
   const room = property.rooms.find(item => item.id === roomId);
   const roomAvailable = Boolean(dates.start && dates.end && !checking && availability[roomId] === true);
@@ -69,7 +73,8 @@ export default function Stay({ property, tenant, bookable, selection, addOns = [
     if (!roomAvailable) { setQuote(null); setQuoteError(''); return; }
     const controller = new AbortController();
     const params = new URLSearchParams({ room_id: String(roomId), check_in: dates.start, check_out: dates.end, guests: String(guests), ...(promo ? { promo_code: promo } : {}) });
-    Object.entries(chosenExtras).forEach(([id, qty]) => params.set(`add_ons[${id}]`, String(qty)));
+    const quoteExtras = JSON.parse(extrasKey) as Record<string, number>;
+    Object.entries(quoteExtras).forEach(([id, qty]) => params.set(`add_ons[${id}]`, String(qty)));
     fetch(`/quote?${params}`, { headers: { Accept: 'application/json' }, signal: controller.signal }).then(async response => {
       const body = await response.json();
       if (response.ok) { setQuote(body); setQuoteError(''); return; }
@@ -146,6 +151,7 @@ export default function Stay({ property, tenant, bookable, selection, addOns = [
           {rules && <p className="mt-5 border-t border-slate-100 pt-4 text-xs leading-5 text-slate">Check-in from {time12(rules.check_in_time)} · Check-out by {time12(rules.check_out_time)}</p>}
         </form>
       </div>
+      {reviews.length > 0 && <section className="mt-14 border-t border-slate-200 pt-10" aria-labelledby="guest-reviews"><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="section-eyebrow">Guest reviews</p><h2 id="guest-reviews" className="section-title mt-2">Stayed here, loved here.</h2></div><p className="flex items-center gap-2 font-semibold"><Star size={19} className="fill-amber-400 text-amber-400"/>{reviewSummary?.average} from {reviewSummary?.count} {reviewSummary?.count === 1 ? 'review' : 'reviews'}</p></div><div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">{reviews.map(review => <article key={review.id} className="rounded-2xl bg-white p-5 shadow-sm"><div className="flex gap-1" aria-label={`${review.rating} out of 5 stars`}>{Array.from({ length: 5 }, (_, index) => <Star key={index} size={15} className={index < review.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}/>)}</div><p className="mt-3 text-sm leading-6">{review.comment || 'A great stay.'}</p><p className="mt-4 text-xs font-semibold text-slate">{review.user?.name || 'Verified guest'}</p></article>)}</div></section>}
     </div>
   </GuestShell>;
 }
