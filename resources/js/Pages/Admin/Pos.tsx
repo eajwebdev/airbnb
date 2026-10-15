@@ -74,7 +74,7 @@ export default function Pos({ date, today, tab: initialTab, items, guests, sales
   const checkout = () => {
     setError('');
     if (!cart.length) { setError('Add at least one item.'); return; }
-    if (method === 'room_charge' && !guest) { setError('Choose the guest to charge this to.'); return; }
+    if (method === 'room_charge' && guest?.status !== 'CHECKED_IN') { setError('Room charges are available only for guests currently checked in.'); return; }
     if (method === 'cash' && tendered !== '' && Number(tendered) + 0.001 < total) { setError('Cash received is less than the total.'); return; }
     setBusy(true);
     router.post('/admin/pos/sales', {
@@ -120,7 +120,7 @@ export default function Pos({ date, today, tab: initialTab, items, guests, sales
           <div className="seg w-full"><button type="button" className="flex-1" aria-pressed={customer === 'walk_in'} onClick={() => { setCustomer('walk_in'); if (method === 'room_charge') setMethod('cash'); }}><UserRound size={14}/>Walk-in</button><button type="button" className="flex-1" aria-pressed={customer === 'guest'} onClick={() => setCustomer('guest')}><BedDouble size={14}/>In-house guest</button></div>
           {customer === 'walk_in' ? <input value={walkInName} onChange={e => setWalkInName(e.target.value)} maxLength={120} placeholder="Customer name (optional)" aria-label="Customer name" className="input mt-2"/>
             : guests.length === 0 ? <p className="mt-2 text-xs font-semibold text-[var(--muted)]">No confirmed or checked-in guests today.</p>
-              : <select value={bookingId} onChange={e => setBookingId(e.target.value ? Number(e.target.value) : '')} aria-label="Guest" className="input mt-2"><option value="">Choose guest…</option>{guests.map(g => <option key={g.id} value={g.id}>{g.guest_name} · {g.unit}{g.status === 'CHECKED_IN' ? '' : ' (arriving)'}</option>)}</select>}
+              : <select value={bookingId} onChange={e => { const id = e.target.value ? Number(e.target.value) : ''; setBookingId(id); if (method === 'room_charge' && guests.find(g => g.id === id)?.status !== 'CHECKED_IN') setMethod('cash'); }} aria-label="Guest" className="input mt-2"><option value="">Choose guest…</option>{guests.map(g => <option key={g.id} value={g.id}>{g.guest_name} · {g.unit}{g.status === 'CHECKED_IN' ? '' : ' (arriving)'}</option>)}</select>}
         </div>
         <div className="max-h-[300px] overflow-y-auto">
           {cart.length === 0 ? <p className="px-4 py-10 text-center text-sm font-semibold text-[var(--muted)]">Tap an item to add it.</p>
@@ -137,7 +137,7 @@ export default function Pos({ date, today, tab: initialTab, items, guests, sales
         </div>
         <div className="p-4">
           <p className="label mb-2">Payment</p>
-          <div className="grid grid-cols-3 gap-1.5">{Object.entries(methods).map(([key, label]) => { const Icon = methodIcon[key] ?? Wallet; const off = key === 'room_charge' && !guest; return <button key={key} type="button" disabled={off} title={off ? 'Pick an in-house guest first' : undefined} onClick={() => setMethod(key)} aria-pressed={method === key} className={`flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[11px] font-bold ${method === key ? 'border-[#0A1134] bg-[#0A1134] text-white' : 'border-[var(--line)] bg-white'} ${off ? 'cursor-not-allowed opacity-40' : ''}`}><Icon size={16}/>{label}</button>; })}</div>
+          <div className="grid grid-cols-3 gap-1.5">{Object.entries(methods).map(([key, label]) => { const Icon = methodIcon[key] ?? Wallet; const off = key === 'room_charge' && guest?.status !== 'CHECKED_IN'; return <button key={key} type="button" disabled={off} title={off ? 'Choose a checked-in guest first' : undefined} onClick={() => setMethod(key)} aria-pressed={method === key} className={`flex flex-col items-center gap-1 rounded-xl border px-1 py-2 text-[11px] font-bold ${method === key ? 'border-[#0A1134] bg-[#0A1134] text-white' : 'border-[var(--line)] bg-white'} ${off ? 'cursor-not-allowed opacity-40' : ''}`}><Icon size={16}/>{label}</button>; })}</div>
           {method === 'cash' && <div className="mt-3"><label className="field">Cash received<input type="number" min="0" step="0.01" value={tendered} onChange={e => setTendered(e.target.value)} placeholder={total.toFixed(2)} className="num"/></label>
             <div className="mt-1.5 flex flex-wrap gap-1">{[total, 100, 200, 500, 1000].filter((v, i) => i === 0 || v >= total).map((v, i) => <button key={i} type="button" onClick={() => setTendered(i === 0 ? '' : v.toFixed(2))} aria-pressed={i === 0 ? tendered === '' : Number(tendered) === v} className="chip !px-2.5 !py-1">{i === 0 ? 'Exact' : money(v)}</button>)}</div>
             <div className="mt-2 flex justify-between rounded-lg bg-[#f4f6fa] px-3 py-2 text-sm font-bold"><span>Change</span><span className="num">{exactMoney(change)}</span></div></div>}

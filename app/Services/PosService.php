@@ -26,13 +26,15 @@ class PosService
             Tenant::whereKey($tenantId)->lockForUpdate()->firstOrFail();
             $booking = null;
             if (! empty($data['booking_id'])) {
-                $booking = Booking::where('tenant_id', $tenantId)->whereKey($data['booking_id'])->first();
+                $booking = Booking::where('tenant_id', $tenantId)->whereKey($data['booking_id'])->lockForUpdate()->first();
                 if (! $booking || ! in_array($booking->status, ['CONFIRMED', 'PAID', 'CHECKED_IN'], true)) {
                     throw ValidationException::withMessages(['booking_id' => 'Pick a guest who is confirmed or checked in.']);
                 }
             }
-            if ($data['payment_method'] === 'room_charge' && ! $booking) {
-                throw ValidationException::withMessages(['payment_method' => 'Choose the in-house guest to charge this to.']);
+            if ($data['payment_method'] === 'room_charge' && (! $booking || $booking->status !== 'CHECKED_IN'
+                || $booking->check_in->toDateString() > today()->toDateString()
+                || $booking->check_out->toDateString() < today()->toDateString())) {
+                throw ValidationException::withMessages(['payment_method' => 'Room charges are available only for guests currently checked in.']);
             }
 
             $itemIds = collect($data['lines'])->pluck('item_id')->filter()->unique();

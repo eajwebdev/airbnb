@@ -338,6 +338,18 @@ class OperationsAndPosTest extends TestCase
         $this->post('/admin/pos/sales', ['lines' => [['item_id' => $beer->id, 'quantity' => 1]], 'payment_method' => 'room_charge', 'booking_id' => $other->id])->assertSessionHasErrors('booking_id');
     }
 
+    public function test_arriving_guest_cannot_be_charged_to_a_room_before_check_in(): void
+    {
+        $booking = $this->inHouse('CONFIRMED');
+        $beer = PosItem::where('name', 'San Miguel beer')->firstOrFail();
+        $this->actingAs($this->user('staff@example.com'))->post('/admin/pos/sales', [
+            'lines' => [['item_id' => $beer->id, 'quantity' => 1]],
+            'payment_method' => 'room_charge',
+            'booking_id' => $booking->id,
+        ])->assertSessionHasErrors('payment_method');
+        $this->assertDatabaseCount('pos_sales', 0);
+    }
+
     public function test_pos_items_are_admin_managed_and_tenant_scoped(): void
     {
         $admin = $this->user('admin@example.com');

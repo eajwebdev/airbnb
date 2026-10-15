@@ -23,7 +23,7 @@ php artisan serve
 
 On Windows PowerShell with script execution disabled, use `npm.cmd` and `npx.cmd`. For a quick local trial without MySQL, set `DB_CONNECTION=sqlite` and create `database/database.sqlite` before migrating. The repository's `.env.example` targets MySQL; the local development `.env` used during implementation targets SQLite because this workstation's MySQL account requires credentials that were not supplied.
 
-The Laravel scheduler must run every minute in deployment (`php artisan schedule:run` via cron or Task Scheduler). It expires booking holds and subscriptions and sends pre-arrival reminders. Run a queue worker when `QUEUE_CONNECTION=database` so queued jobs are processed.
+The Laravel scheduler must run every minute in deployment (`php artisan schedule:run` via cron or Task Scheduler). See **Operations** below for what it does.
 
 ## Demo
 
@@ -68,6 +68,29 @@ npm.cmd run build
 ```
 
 Tests cover repeatable seeding, the public catalog, authentication, role access, tenant isolation, booking overlap and turnover, blocked dates, pricing, mock and manual payments, booking transitions, plan price snapshots, client locking, and expiry commands.
+
+## Operations
+
+**Is everything working?** Sign in as the superadmin and open **System health** (`/superadmin/health`), or run `php artisan platform:health` on the server. It checks the database and pending migrations, that the scheduler is running, email settings and failed guest emails, backup age, disk space and folder permissions, production settings (`APP_DEBUG`, `DEMO`, HTTPS) and clients that still offer test payments. Each problem comes with the fix. The command exits with 1 when something must be fixed, so it can gate a deploy script. `GET /up` returns 500 when the database is unreachable, for an uptime monitor.
+
+**Scheduler.** One cron entry runs everything: `* * * * * cd /path/to/app && php artisan schedule:run >> /dev/null 2>&1` (on Windows, a Task Scheduler task every minute). `php artisan schedule:list` shows the jobs:
+
+| Job | When | What it does |
+| --- | --- | --- |
+| `bookings:expire-holds` | every minute | Releases unpaid checkout holds |
+| `messages:retry-failed` | every 10 minutes | Resends failed guest emails (backoff 10/20/40/80 min, up to 48 h), skipping ones the booking has outgrown |
+| `bookings:send-reminders` | hourly | Pre-arrival emails |
+| `subscriptions:expire` | daily | Ends lapsed subscriptions and trials |
+| `platform:backup` | daily 02:30 | Gzipped database snapshot to `storage/app/backups`, newest `BACKUP_KEEP` (14) kept |
+| `queue:prune-failed` | daily | Drops failed-job records older than 30 days |
+
+**Backups.** SQLite is copied with `VACUUM INTO` (safe while the site is in use); MySQL/MariaDB uses `mysqldump` (set `BACKUP_MYSQLDUMP` if it is not on the PATH). Backups sit on the same server, so copy `storage/app/backups` somewhere else as well. To restore SQLite: stop the site, delete `database/database.sqlite-wal` and `-shm` if present, then gunzip the file over `database/database.sqlite`. For MySQL: `gunzip -c backup-….sql.gz | mysql eaj_booking`.
+
+**Guest email.** Emails are sent during the request with a 10-second timeout (`MAIL_TIMEOUT`), so no queue worker is needed. A failed email is logged on the booking, retried automatically, and staff can press **Resend** in the booking drawer.
+
+**Logs** rotate daily in `storage/logs` and are kept for `LOG_DAILY_DAYS` (14).
+
+**SQLite** runs in WAL mode with immediate transactions and a 5-second busy timeout, so concurrent checkouts wait for each other instead of failing. MySQL is still recommended for production.
 
 ## Production deployment gates
 

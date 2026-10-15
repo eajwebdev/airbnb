@@ -4,6 +4,13 @@ return [
     'demo_mode' => (bool) env('DEMO', false),
     'timezone' => 'Asia/Manila',
 
+    // Nightly database backups (php artisan platform:backup). Copy this folder off the server as well.
+    'backups' => [
+        'path' => env('BACKUP_PATH', storage_path('app/backups')),
+        'keep' => (int) env('BACKUP_KEEP', 14),
+        'mysqldump' => env('BACKUP_MYSQLDUMP', 'mysqldump'),
+    ],
+
     // Defaults for every tenant setting; tenants override them from Admin → Settings.
     'tenant_defaults' => [
         'currency' => 'PHP',

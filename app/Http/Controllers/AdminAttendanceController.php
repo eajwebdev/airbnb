@@ -33,7 +33,8 @@ class AdminAttendanceController extends Controller
             'today' => today()->toDateString(),
             'entry' => $this->entry($own),
             'staff' => $user->role === 'ADMIN'
-                ? User::where('tenant_id', $user->tenant_id)->where('role', 'STAFF')->whereNull('deactivated_at')
+                ? User::where('tenant_id', $user->tenant_id)->where('role', 'STAFF')
+                    ->where(fn ($query) => $query->whereNull('deactivated_at')->orWhereIn('id', $entries->keys()))
                     ->orderBy('name')->get(['id', 'name'])->map(fn (User $member) => [
                         'id' => $member->id,
                         'name' => $member->name,
@@ -76,6 +77,9 @@ class AdminAttendanceController extends Controller
             if (! $entry || $entry->clocked_out_at) {
                 throw ValidationException::withMessages(['attendance' => 'Clock in before clocking out.']);
             }
+            if (now()->gt($entry->clocked_in_at->copy()->addDay())) {
+                throw ValidationException::withMessages(['attendance' => 'This shift is over 24 hours. Ask your manager to correct the missed clock-out.']);
+            }
             $entry->update(['clocked_out_at' => now()]);
             $this->audit($request, $entry, 'attendance.clock_out');
         });
@@ -98,6 +102,9 @@ class AdminAttendanceController extends Controller
         }
         DB::transaction(function () use ($request, $entry, $data, $in, $out) {
             $entry = AttendanceEntry::whereKey($entry->id)->lockForUpdate()->firstOrFail();
+            if (! $out && AttendanceEntry::where('user_id', $entry->user_id)->where('id', '!=', $entry->id)->whereNull('clocked_out_at')->exists()) {
+                throw ValidationException::withMessages(['clocked_out_at' => 'This staff member already has another open shift.']);
+            }
             $before = $this->entry($entry);
             $entry->update(['clocked_in_at' => $in, 'clocked_out_at' => $out]);
             $this->audit($request, $entry, 'attendance.corrected', [

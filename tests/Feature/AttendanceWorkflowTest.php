@@ -80,4 +80,27 @@ class AttendanceWorkflowTest extends TestCase
         ])->assertForbidden();
         $this->travelBack();
     }
+
+    public function test_missed_clock_out_requires_manager_correction_before_another_shift(): void
+    {
+        $staff = User::where('email', 'staff@example.com')->firstOrFail();
+        $admin = User::where('email', 'admin@example.com')->firstOrFail();
+        $start = today()->subDays(2)->setTime(9, 0);
+        $staff->tenant->update(['subscription_started_at' => today()->subDays(5)]);
+        $this->travelTo($start);
+        $this->actingAs($staff)->post('/admin/attendance/clock-in')->assertRedirect();
+        $entry = AttendanceEntry::where('user_id', $staff->id)->firstOrFail();
+
+        $this->travelTo($start->copy()->addHours(49));
+        $this->post('/admin/attendance/clock-out')->assertSessionHasErrors('attendance');
+        $this->post('/admin/attendance/clock-in')->assertSessionHasErrors('attendance');
+        $this->actingAs($admin)->put('/admin/attendance/'.$entry->id, [
+            'clocked_in_at' => $start->format('Y-m-d\TH:i'),
+            'clocked_out_at' => $start->copy()->addHours(8)->format('Y-m-d\TH:i'),
+            'reason' => 'Staff forgot to clock out',
+        ])->assertSessionHasNoErrors();
+        $this->actingAs($staff)->post('/admin/attendance/clock-in')->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame(2, AttendanceEntry::where('user_id', $staff->id)->count());
+        $this->travelBack();
+    }
 }

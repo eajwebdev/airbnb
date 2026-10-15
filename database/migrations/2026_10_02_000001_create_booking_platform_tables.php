@@ -172,7 +172,10 @@ return new class extends Migration
             Schema::dropIfExists($table);
         }
         Schema::table('users', fn (Blueprint $t) => $t->dropConstrainedForeignId('tenant_id'));
-        Schema::table('users', fn (Blueprint $t) => $t->dropColumn('role'));
+        Schema::table('users', function (Blueprint $t) {
+            $t->dropIndex(['role']);
+            $t->dropColumn('role');
+        });
         Schema::dropIfExists('tenants');
     }
 };

@@ -27,7 +27,7 @@ class AvailabilityService
         $bookings = Booking::where('room_id', $room->id)
             ->whereDate('check_in', '<', $checkOut)->whereDate('check_out', '>', $checkIn)
             ->where(function ($q) {
-                $q->whereIn('status', ['PAID', 'CONFIRMED', 'CHECKED_IN'])
+                $q->whereIn('status', Booking::OCCUPYING)
                     ->orWhere(function ($hold) {
                         $hold->whereIn('status', ['PENDING', 'AWAITING_PAYMENT'])->where('expires_at', '>', now());
                     });

@@ -57,6 +57,17 @@ class BookingPlatformTest extends TestCase
         $this->assertFalse(app(AvailabilityService::class)->available($room, '2026-10-06', '2026-10-08'));
     }
 
+    public function test_early_checkout_does_not_release_reserved_nights(): void
+    {
+        $room = $this->room();
+        $booking = app(BookingService::class)->create($room, $this->data());
+        $booking->update(['status' => 'CHECKED_OUT', 'expires_at' => null]);
+        $this->assertFalse(app(AvailabilityService::class)->available($room, '2026-10-06', '2026-10-07'));
+        $booking->update(['status' => 'COMPLETED']);
+        $this->assertFalse(app(AvailabilityService::class)->available($room, '2026-10-06', '2026-10-07'));
+        $this->assertTrue(app(AvailabilityService::class)->available($room, '2026-10-07', '2026-10-08'));
+    }
+
     public function test_multi_unit_inventory_is_counted_per_night(): void
     {
         $room = $this->room(2);

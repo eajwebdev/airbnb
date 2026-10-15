@@ -117,7 +117,7 @@ class AdminBookingController extends Controller
             'payments' => $booking->payments->map(fn (Payment $p) => $p->only('id', 'method', 'amount', 'status', 'reference', 'payer_reference', 'paid_at', 'created_at')),
             'charges' => $booking->posSales->map(fn (PosSale $s) => [...$s->only('id', 'number', 'total', 'status', 'payment_method', 'created_at'),
                 'items' => $s->items->map(fn ($i) => $i->only('name', 'quantity', 'amount'))]),
-            'messages' => $booking->messages->map(fn ($m) => $m->only('event', 'subject', 'status', 'created_at')),
+            'messages' => $booking->messages->map(fn ($m) => $m->only('id', 'event', 'subject', 'status', 'error', 'created_at')),
             'transitions' => $expired ? [] : (self::TRANSITIONS[$booking->status] ?? []),
             'expired' => $expired,
             'group' => $booking->group_code ? Booking::with('room:id,name')->where('tenant_id', $booking->tenant_id)->where('group_code', $booking->group_code)
@@ -201,13 +201,18 @@ class AdminBookingController extends Controller
     {
         abort_unless($booking->tenant_id === $request->user()->tenant_id, 404);
         $data = $request->validate(['status' => 'required|in:CONFIRMED,CHECKED_IN,CHECKED_OUT,COMPLETED,CANCELLED,NO_SHOW']);
-        abort_if(in_array($booking->status, ['PENDING', 'AWAITING_PAYMENT'], true) && $booking->expires_at?->isPast(), 422);
-        abort_unless(in_array($data['status'], self::TRANSITIONS[$booking->status] ?? [], true), 422);
-        if ($data['status'] === 'CHECKED_OUT' && ($open = $booking->openCharges()) > 0) {
-            throw ValidationException::withMessages(['status' => 'Settle '.number_format($open, 2).' in room charges before checking out.']);
-        }
-        $booking->update(['status' => $data['status'], 'expires_at' => null]);
-        $this->audit($request, $booking, 'booking.status_changed');
+        $booking = DB::transaction(function () use ($request, $booking, $data) {
+            $booking = Booking::whereKey($booking->id)->lockForUpdate()->firstOrFail();
+            abort_if(in_array($booking->status, ['PENDING', 'AWAITING_PAYMENT'], true) && $booking->expires_at?->isPast(), 422);
+            abort_unless(in_array($data['status'], self::TRANSITIONS[$booking->status] ?? [], true), 422);
+            if ($data['status'] === 'CHECKED_OUT' && ($open = $booking->openCharges()) > 0) {
+                throw ValidationException::withMessages(['status' => 'Settle '.number_format($open, 2).' in room charges before checking out.']);
+            }
+            $booking->update(['status' => $data['status'], 'expires_at' => null]);
+            $this->audit($request, $booking, 'booking.status_changed');
+
+            return $booking;
+        });
 
         return back()->with('success', match ($data['status']) {
             'CHECKED_IN' => $booking->guest_name.' checked in.', 'CHECKED_OUT' => $booking->guest_name.' checked out.',

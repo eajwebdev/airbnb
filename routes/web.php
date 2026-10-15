@@ -19,6 +19,7 @@ use App\Http\Controllers\AdminTeamController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\SuperadminHealthController;
 use App\Http\Controllers\SuperadminTenantController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -74,6 +75,7 @@ Route::middleware(['auth', 'role:ADMIN,STAFF', 'tenant.active'])->prefix('admin'
     Route::post('/bookings/{booking}/payments', [AdminBookingController::class, 'payment'])->name('bookings.payments.store');
     Route::post('/bookings/{booking}/charges/settle', [AdminBookingController::class, 'settleCharges'])->name('bookings.charges.settle');
     Route::put('/payments/{payment}/review', [AdminBookingController::class, 'review'])->name('payments.review');
+    Route::post('/messages/{message}/retry', [AdminMessageController::class, 'retry'])->middleware('throttle:20,1')->name('messages.retry');
 });
 Route::middleware(['auth', 'role:STAFF', 'tenant.active'])->prefix('admin')->name('admin.')->group(function () {
     Route::post('/attendance/clock-in', [AdminAttendanceController::class, 'clockIn'])->name('attendance.clock-in');
@@ -138,4 +140,7 @@ Route::middleware(['auth', 'role:SUPERADMIN'])->prefix('superadmin')->name('supe
     Route::post('/clients', [SuperadminTenantController::class, 'store'])->name('clients.store');
     Route::put('/clients/{tenant}/status', [SuperadminTenantController::class, 'status'])->name('clients.status');
     Route::post('/clients/{tenant}/subscription', [SuperadminTenantController::class, 'subscribe'])->name('clients.subscription');
+    Route::get('/health', [SuperadminHealthController::class, 'index'])->name('health');
+    Route::post('/health/backup', [SuperadminHealthController::class, 'backup'])->middleware('throttle:3,10')->name('health.backup');
+    Route::post('/health/retry-emails', [SuperadminHealthController::class, 'retryEmails'])->middleware('throttle:6,1')->name('health.retry-emails');
 });

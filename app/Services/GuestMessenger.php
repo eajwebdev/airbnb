@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\BookingMessage;
 use App\Models\MessageTemplate;
 use App\Models\Tenant;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Mail;
 
 class GuestMessenger
@@ -22,6 +23,11 @@ class GuestMessenger
 
     /** Events that go out at most once per booking. Payment receipts can repeat. */
     private const ONCE = ['booking_received', 'booking_confirmed', 'booking_cancelled', 'pre_arrival', 'thank_you'];
+
+    /** Automatic retries of a failed email stop after this many tries or this many hours. */
+    public const MAX_ATTEMPTS = 5;
+
+    public const RETRY_HOURS = 48;
 
     public function template(Tenant $tenant, string $event): array
     {
@@ -40,9 +46,46 @@ class GuestMessenger
         }
         $booking->loadMissing('property', 'room', 'tenant', 'payments', 'price');
         $template = $this->template($booking->tenant, $event);
-        if (! $template['enabled'] || (in_array($event, self::ONCE, true) && $booking->messages()->where('event', $event)->where('status', 'SENT')->exists())) {
-            return null;
+        $failed = null;
+        if (in_array($event, self::ONCE, true)) {
+            if ($booking->messages()->where('event', $event)->where('status', 'SENT')->exists()) {
+                return null;
+            }
+            // A one-time message that failed earlier is retried on its existing log row rather than logged twice.
+            $failed = $booking->messages()->where('event', $event)->where('status', 'FAILED')->latest('id')->first();
         }
+
+        return $template['enabled'] ? $this->deliver($booking, $event, $template, $failed) : null;
+    }
+
+    /** Failed emails still inside the retry window whose backoff (10, 20, 40, 80 minutes) has passed. */
+    public function dueForRetry(): Collection
+    {
+        return BookingMessage::where('status', 'FAILED')->where('attempts', '<', self::MAX_ATTEMPTS)
+            ->where('created_at', '>=', now()->subHours(self::RETRY_HOURS))->orderBy('id')->get()
+            ->filter(fn (BookingMessage $message) => ($message->last_attempt_at ?? $message->created_at)
+                ->lte(now()->subMinutes(10 * 2 ** ($message->attempts - 1))));
+    }
+
+    /** Send a failed email again on the same log row. Marked SKIPPED once it no longer fits the booking, e.g. a payment request for a booking since confirmed. */
+    public function retry(BookingMessage $message): BookingMessage
+    {
+        $booking = Booking::withTrashed()->with('property', 'room', 'tenant', 'payments', 'price')->find($message->booking_id);
+        $template = $booking ? $this->template($booking->tenant, $message->event) : null;
+        $alreadySent = $booking && in_array($message->event, self::ONCE, true)
+            && $booking->messages()->where('event', $message->event)->where('status', 'SENT')->exists();
+        if (! $booking || $booking->trashed() || blank($booking->guest_email) || ! $template['enabled'] || $alreadySent
+            || ! $this->stillRelevant($booking, $message->event)) {
+            $message->update(['status' => 'SKIPPED']);
+
+            return $message;
+        }
+
+        return $this->deliver($booking, $message->event, $template, $message);
+    }
+
+    private function deliver(Booking $booking, string $event, array $template, ?BookingMessage $failed): BookingMessage
+    {
         $values = $this->values($booking);
         $subject = $this->render($template['subject'], $values);
         $body = $this->render($template['body'], $values);
@@ -53,9 +96,27 @@ class GuestMessenger
             report($e);
             $error = mb_substr($e->getMessage(), 0, 250);
         }
+        $result = ['recipient' => $booking->guest_email, 'subject' => $subject, 'status' => $error ? 'FAILED' : 'SENT', 'error' => $error];
+        if ($failed) {
+            $failed->update([...$result, 'attempts' => $failed->attempts + 1, 'last_attempt_at' => now()]);
 
-        return BookingMessage::create(['booking_id' => $booking->id, 'event' => $event, 'recipient' => $booking->guest_email,
-            'subject' => $subject, 'status' => $error ? 'FAILED' : 'SENT', 'error' => $error]);
+            return $failed;
+        }
+
+        return BookingMessage::create(['booking_id' => $booking->id, 'event' => $event, ...$result]);
+    }
+
+    private function stillRelevant(Booking $booking, string $event): bool
+    {
+        return match ($event) {
+            'booking_received' => $booking->status === 'AWAITING_PAYMENT',
+            'booking_confirmed' => in_array($booking->status, ['PAID', 'CONFIRMED', 'CHECKED_IN'], true),
+            'payment_received' => in_array($booking->status, Booking::OCCUPYING, true),
+            'booking_cancelled' => $booking->status === 'CANCELLED',
+            'pre_arrival' => $booking->status === 'CONFIRMED' && $booking->check_in->gte(today()),
+            'thank_you' => in_array($booking->status, ['CHECKED_OUT', 'COMPLETED'], true),
+            default => false,
+        };
     }
 
     public function render(string $text, array $values): string

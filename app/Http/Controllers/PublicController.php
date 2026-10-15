@@ -155,8 +155,16 @@ class PublicController extends Controller
         $booking = Booking::with('property.tenant', 'room', 'price')->where('reference', $reference)->firstOrFail();
         abort_unless(($request->user() && $request->user()->id === $booking->user_id) || $request->session()->get('booking_reference') === $reference, 403);
 
+        if (in_array($booking->status, ['CONFIRMED', 'PAID', 'CHECKED_IN', 'CHECKED_OUT', 'COMPLETED'], true)
+            || ($booking->status === 'AWAITING_PAYMENT' && $booking->payments()->where('status', 'PENDING')->exists())) {
+            return redirect()->route('booking.success', $booking->reference);
+        }
+        $checkoutUnavailable = ! in_array($booking->status, ['PENDING', 'AWAITING_PAYMENT'], true)
+            || ! $booking->expires_at?->isFuture() || ! $booking->tenant->acceptsBookings();
+
         return Inertia::render('Public/Checkout', ['booking' => $booking, 'tenant' => $booking->property->tenant,
-            'paymentOptions' => $payments->options($booking->property->tenant), 'amountDueNow' => $booking->amountDueNow()]);
+            'paymentOptions' => $checkoutUnavailable ? [] : $payments->options($booking->property->tenant),
+            'amountDueNow' => $booking->amountDueNow(), 'checkoutUnavailable' => $checkoutUnavailable]);
     }
 
     public function pay(Request $request, string $reference, PaymentService $payments, GuestMessenger $messenger)

@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Mail\GuestMessage;
 use App\Models\AuditLog;
+use App\Models\BookingMessage;
 use App\Models\MessageTemplate;
 use App\Services\GuestMessenger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class AdminMessageController extends Controller
@@ -56,9 +58,28 @@ class AdminMessageController extends Controller
         $data = $request->validate(['subject' => 'required|string|max:150', 'body' => 'required|string|max:5000']);
         $tenant = $request->user()->tenant;
         $values = $messenger->sampleValues($tenant);
-        Mail::to($request->user()->email)->send(new GuestMessage($tenant, '[Test] '.$messenger->render($data['subject'], $values), $messenger->render($data['body'], $values)));
+        try {
+            Mail::to($request->user()->email)->send(new GuestMessage($tenant, '[Test] '.$messenger->render($data['subject'], $values), $messenger->render($data['body'], $values)));
+        } catch (\Throwable $e) {
+            report($e);
+            throw ValidationException::withMessages(['action' => 'The mail server refused the test email. Check the mail settings with your provider.']);
+        }
 
         return back()->with('success', 'Test email sent to '.$request->user()->email.'.');
+    }
+
+    /** Resend a guest email that failed, from the booking drawer. */
+    public function retry(Request $request, GuestMessenger $messenger, BookingMessage $message)
+    {
+        abort_unless($message->booking()->withTrashed()->value('tenant_id') === $request->user()->tenant_id, 404);
+        abort_unless($message->status === 'FAILED', 422, 'This email is not waiting to be resent.');
+        $message = $messenger->retry($message);
+
+        return match ($message->status) {
+            'SENT' => back()->with('success', 'Email sent to '.$message->recipient.'.'),
+            'SKIPPED' => back()->with('success', 'The booking has moved on, so this email is no longer needed.'),
+            default => throw ValidationException::withMessages(['action' => 'Still could not send: '.$message->error]),
+        };
     }
 
     private function audit(Request $request, string $action, string $event): void

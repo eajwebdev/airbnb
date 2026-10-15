@@ -25,5 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->header('X-Inertia') && $e->getStatusCode() === 422 && ! $request->isMethod('GET')) {
                 return back()->withErrors(['action' => $e->getMessage() ?: 'That change is not allowed right now.']);
             }
+            // A form left open past the session lifetime (common on staff phones) gets a retry prompt, not "419 Page Expired".
+            if ($e->getStatusCode() === 419 && ! $request->expectsJson()) {
+                return back()->withErrors(['action' => 'This page was open too long and your session expired. Please try again.']);
+            }
         });
     })->create();

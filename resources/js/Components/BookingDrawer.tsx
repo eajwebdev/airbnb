@@ -11,7 +11,7 @@ type Detail = {
   paid: number; balance: number; open_charges: number;
   payments: { id: number; method: string; amount: string; status: string; reference: string | null; payer_reference: string | null; paid_at: string | null; created_at: string }[];
   charges: { id: number; number: string; total: string; status: string; payment_method: string; created_at: string; items: { name: string; quantity: number; amount: string }[] }[];
-  messages: { event: string; subject: string; status: string; created_at: string }[];
+  messages: { id: number; event: string; subject: string; status: string; error: string | null; created_at: string }[];
   transitions: string[]; expired: boolean; group: { id: number; unit: string; status: string }[];
 };
 const methodLabel: Record<string, string> = { cash: 'Cash', gcash: 'GCash', maya: 'Maya', bank_transfer: 'Bank transfer', card: 'Card', manual: 'Manual', mock: 'Online (test)', room_charge: 'Room charge' };
@@ -103,7 +103,7 @@ export default function BookingDrawer({ id, onClose }: { id: number | null; onCl
 
           {data.price && <Section title="Price breakdown"><dl className="grid gap-1 text-xs">{([['Room', data.price.subtotal], ['Extra guests', data.price.extra_guest_fee], ['Add-ons', data.price.add_ons_total], ['Discounts', `-${data.price.discount}`], ['Cleaning', data.price.cleaning_fee], ['Service fee', data.price.service_fee], ['Tax', data.price.tax]] as const).filter(([, v]) => Math.abs(Number(v)) > 0).map(([k, v]) => <div key={k} className="flex justify-between"><dt className="text-[var(--muted)]">{k}</dt><dd className="num">{exactMoney(v)}</dd></div>)}</dl></Section>}
 
-          {data.messages.length > 0 && <Section title="Messages sent"><ul className="grid gap-1 text-xs">{data.messages.map((m, i) => <li key={i} className="flex justify-between gap-3"><span className="truncate">{m.subject}</span><span className={m.status === 'SENT' ? 'text-emerald-700' : 'text-rose-700'}>{m.status.toLowerCase()}</span></li>)}</ul></Section>}
+          {data.messages.length > 0 && <Section title="Messages sent"><ul className="grid gap-1 text-xs">{data.messages.map(m => <li key={m.id} className="flex items-center justify-between gap-3"><span className="truncate" title={m.error ?? undefined}>{m.subject}</span><span className="flex shrink-0 items-center gap-2">{m.status === 'FAILED' && <button type="button" disabled={busy} className="font-semibold text-pink underline-offset-2 hover:underline" onClick={() => send('post', `/admin/messages/${m.id}/retry`, {})}>Resend</button>}<span className={m.status === 'SENT' ? 'text-emerald-700' : m.status === 'SKIPPED' ? 'text-[var(--muted)]' : 'text-rose-700'} title={m.status === 'SKIPPED' ? 'Not resent: the booking has moved on.' : undefined}>{m.status === 'FAILED' ? 'not delivered' : m.status.toLowerCase()}</span></span></li>)}</ul></Section>}
         </>}
       </Dialog.Content>
     </Dialog.Portal>
