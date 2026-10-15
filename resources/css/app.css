@@ -28,6 +28,16 @@ body { margin:0; color:var(--foreground); font-family:Inter,ui-sans-serif,system
 .guest-brand img { position:absolute; top:-25px; left:-12px; width:180px; max-width:none; }
 .guest-brand.has-tenant-logo { display:flex; align-items:center; justify-content:flex-start; width:auto; max-width:190px; padding:4px; }
 .guest-brand.has-tenant-logo img { position:static; width:auto; max-width:180px; max-height:54px; object-fit:contain; }
+.guest-brand.eaj-brand { display:flex; width:auto; height:56px; align-items:center; gap:.75rem; overflow:visible; }
+.guest-brand.eaj-brand img { position:static; width:56px; height:56px; border-radius:14px; background:var(--brand-navy); object-fit:cover; transform:scale(1.02); box-shadow:0 8px 22px rgba(10,17,52,.18); }
+.eaj-brand-name { display:grid; line-height:1; }
+.eaj-brand-name strong { color:var(--brand-navy); font-size:1.05rem; letter-spacing:-.025em; }
+.eaj-brand-name small { margin-top:.3rem; color:var(--brand-slate); font-size:.62rem; font-weight:800; letter-spacing:.18em; text-transform:uppercase; }
+.eaj-landing .guest-header { border-bottom-color:rgba(10,17,52,.1); }
+.eaj-landing .guest-nav-cta { box-shadow:0 8px 22px rgba(10,17,52,.16); }
+.eaj-hero-glow { background:rgba(243,23,108,.34); filter:blur(80px); }
+.eaj-kicker { width:max-content; border:1px solid rgba(255,255,255,.18); border-radius:999px; background:rgba(243,23,108,.14); padding:.55rem .85rem; color:#fff; font-size:.7rem; font-weight:800; letter-spacing:.2em; text-transform:uppercase; backdrop-filter:blur(8px); }
+.eaj-search { border-top:4px solid var(--brand-pink); box-shadow:0 20px 55px rgba(10,17,52,.13); }
 .guest-menu-button { display:inline-flex; width:44px; height:44px; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; }
 .guest-menu-button:hover { background:#f1f3f8; }
 .guest-nav { align-items:center; gap:2rem; font-size:.9rem; font-weight:650; }
@@ -49,7 +59,7 @@ body { margin:0; color:var(--foreground); font-family:Inter,ui-sans-serif,system
 .dashboard-grid { display:grid; gap:1.25rem; }.metric-card { border:1px solid var(--border); border-radius:20px; background:white; padding:1.35rem; }.metric-card strong { display:block; margin-top:.8rem; font-size:1.85rem; letter-spacing:-.04em; }.metric-card small { color:var(--brand-slate); font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; }
 @media(max-width:767px) { .guest-nav { position:absolute; top:80px; left:0; right:0; flex-direction:column; align-items:stretch; gap:0; border-bottom:1px solid var(--border); background:white; padding:1rem; box-shadow:0 15px 25px #0a11341a; }.guest-nav>* { padding:.75rem; }.date-dialog { top:auto; bottom:0; left:0; width:100%; max-height:90dvh; transform:none; border-radius:24px 24px 0 0; }.container { width:min(100% - 1.5rem,1200px); } }
 @media(min-width:768px) { .guest-menu-button { display:none; } }
-@media(max-width:480px) { .guest-brand { width:130px; }.guest-brand img { width:160px; top:-21px; left:-14px; }.guest-brand.has-tenant-logo { max-width:145px; }.guest-brand.has-tenant-logo img { max-width:135px; } }
+@media(max-width:480px) { .guest-brand { width:130px; }.guest-brand img { width:160px; top:-21px; left:-14px; }.guest-brand.has-tenant-logo { max-width:145px; }.guest-brand.has-tenant-logo img { max-width:135px; }.guest-brand.eaj-brand { width:auto; }.guest-brand.eaj-brand img { width:50px; height:50px; }.eaj-brand-name strong { font-size:.95rem; } }
 @media(max-width:767px) { .dashboard-sidebar { position:fixed; z-index:50; top:64px; bottom:0; left:0; width:min(86vw,300px); overflow-y:auto; box-shadow:18px 0 50px #0a11342e; }.dashboard-sidebar>div { min-height:100%; } }
 /* ── tapp operations theme. Scoped to .tapp (admin shell) and the .tapp-dialog/.tapp-drawer portals so the public guest site keeps its own branding. ── */
 .tapp,.tapp-dialog,.tapp-drawer { --color-navy:#0A1134; --color-pink:#F3176C; --color-slate:#6B7793; --brand-navy:#0A1134; --brand-pink:#F3176C; --brand-slate:#6B7793; --foreground:#0A1134; --border:#e1e5ed; --surface-muted:#f0f2f8; --mint:#ffe8f1; --ink:#0A1134; --muted:#6B7793; --line:#e4e8f0; --canvas:#f5f6fa; --danger:#c2453d; --warn:#c98a1b;
