@@ -12,7 +12,7 @@ const WEBSITES = [
 ] as const;
 const ADDONS = [
   { id: 'pos', name: 'Point of sale', price: 549, description: 'Front desk sales, items, charges and transaction records.' },
-  { id: 'messages', name: 'Guest messaging', price: 499, description: 'Message templates and booking communication tools.' },
+  { id: 'messages', name: 'Guest messaging', price: 199, description: 'Message templates and booking communication tools.' },
   { id: 'payments', name: 'Online payment integration', price: 599, description: 'Checkout and payment review flow; live PayMongo connection requires provider setup.' },
   { id: 'face', name: 'Face recognition attendance', price: 399, description: 'Staff attendance records and manager review are ready. Camera matching requires integration and privacy review.' },
 ] as const;
