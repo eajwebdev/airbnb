@@ -44,7 +44,7 @@ class AuthController extends Controller
     public function demo(Request $request)
     {
         abort_unless(config('platform.demo_mode'), 404);
-        $data = $request->validate(['role' => 'required|in:superadmin,admin,staff,guest']);
+        $data = $request->validate(['role' => 'required|in:admin,staff,guest']);
         $user = User::where('email', $data['role'].'@example.com')->where('role', strtoupper($data['role']))->firstOrFail();
         Auth::login($user);
         $request->session()->regenerate();

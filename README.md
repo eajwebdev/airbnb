@@ -33,14 +33,13 @@ The login page offers one-click access for:
 
 | Role | Email | Password for development |
 | --- | --- | --- |
-| Superadmin | `superadmin@example.com` | `Password123!` |
 | Administrator | `admin@example.com` | `Password123!` |
 | Staff | `staff@example.com` | `Password123!` |
 | Guest | `guest@example.com` | `Password123!` |
 
 The second tenant has `admin2@example.com` with the same development password for tenant isolation checks.
 
-Change these passwords or omit the demo seed in a real deployment. `DEMO=false` hides the cards and makes `POST /demo/login` return 404. The demo endpoint accepts only the four approved role names and is rate limited.
+Change these passwords or omit the demo seed in a real deployment. `DEMO=false` hides the cards and makes `POST /demo/login` return 404. The demo endpoint accepts only the three approved role names and is rate limited.
 
 ## Current scope
 

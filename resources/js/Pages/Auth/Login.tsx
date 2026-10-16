@@ -2,7 +2,6 @@ import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import Shell from '../../Components/Shell';
 
 const roles = [
-  ['superadmin', 'Platform management'],
   ['admin', 'Property management'],
   ['staff', 'Booking operations'],
   ['guest', 'Customer experience'],
